@@ -1,8 +1,17 @@
 export interface Environment {
   Name?: string;
   Port?: number;
-  Secret?: string;
+  // Secret?: string;
+  Database: Database;
   Line: Line;
+}
+
+interface Database {
+  host: string;
+  username: string;
+  password: string;
+  port: string;
+  name: string;
 }
 
 interface Line {

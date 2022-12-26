@@ -5,9 +5,16 @@ import { Environment } from './environment.interface';
 export class EnvironmentController {
   public Get(): Environment {
     let options: Environment = {
-      Name: process.env.NODE_ENV ?? 'development',
-      Port: Number(process.env.PORT) ?? 8080,
-      Secret: process.env.SECRET,
+      Name: process.env.NODE_ENV,
+      Port: parseInt(process.env.PORT) ?? 8080,
+      Database: {
+        host: process.env.DB_HOST,
+        username: process.env.DB_USERNAME,
+        password: process.env.DB_PASSWORD,
+        name: process.env.DB_NAME,
+        port: process.env.DB_PORT,
+      },
+      // Secret: process.env.SECRET,
       Line: {
         Notify: {
           Token: process.env.LINE_NOTIFY_TOKEN,

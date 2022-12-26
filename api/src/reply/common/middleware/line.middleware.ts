@@ -15,10 +15,6 @@ export class LineMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction) {        
     try {
-      
-      console.log('ee');
-      
-
       const channelSecret = process.env.LINE_MESSAGE_SECRET
       
       const body = JSON.stringify(req.body);

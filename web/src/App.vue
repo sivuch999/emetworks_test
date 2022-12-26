@@ -26,12 +26,20 @@ export default defineComponent({
   },
   methods: {
     CheckLogin: (decode: any | null = {exp: 0}) => {
+      console.log('CheckLogin');
+
       let now = Math.floor(new Date().getTime() / 1000);
       let minute = Math.round((decode.exp - now) / 60);
       if (minute <= 1) {
+        console.log(true);
+        
         liff.logout()
         liff.login({ redirectUri: window.location.pathname })
+      } else {
+        console.log(false);
+        
       }
+      // liff.login({ redirectUri: window.location.pathname })
 }
   },
 
@@ -40,14 +48,17 @@ export default defineComponent({
       liffId: import.meta.env.VITE_LIFF_ID,
       withLoginOnExternalBrowser: true
     });
-    
-    // if (liff.isLoggedIn()) {
+    if (liff.isLoggedIn()) {
+      console.log('isLoggedIn');
+      
       let decode = await liff.getDecodedIDToken()
       this.CheckLogin(decode)
       const idToken: string | null = liff.getIDToken()
       this.idToken = idToken
       $axios.defaults.headers.common['Authorization'] = `Bearer ${this.idToken}`
-    // }
+    } else {
+      console.log('not LoggedIn');
+    }
   }
 
     
