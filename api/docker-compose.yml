@@ -1,0 +1,20 @@
+version: '3.0'
+services:
+  db:
+    platform: linux/x86_64
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'emetworks_test'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'Passw0rd'
+      MYSQL_ROOT_PASSWORD: 'Passw0rd'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - mydb_data:/var/lib/mysql
+
+volumes:
+  mydb_data:
