@@ -12,7 +12,7 @@ export class AppService {
     private readonly configService: ConfigService,
   ) {}
 
-  @Cron('0 0 0 1 * *')
+  @Cron('0 0 1 * * *')
   async handleCronMemberNotVote() {
     const now = new Date()
     console.log(now);

@@ -13,6 +13,8 @@ export class EnvironmentController {
         password: process.env.DB_PASSWORD,
         name: process.env.DB_NAME,
         port: process.env.DB_PORT,
+        synchronize: process.env.DB_SYNCHRONIZE,
+        logging: process.env.LOGGING,
       },
       // Secret: process.env.SECRET,
       Line: {

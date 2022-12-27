@@ -4,13 +4,15 @@ import { LoggerOptions } from 'typeorm';
 
 export default class TypeOrmConfig {
   static getOrmConfig(configService: ConfigService): TypeOrmModuleOptions {
+    console.log(configService);
+    
     return {
       type: 'mysql',
-      host: configService.get('DB_HOST') || 'localhost',
-      port: configService.get('DB_PORT') || 3306,
-      username: configService.get('DB_USERNAME'),
-      password: configService.get('DB_PASSWORD'),
-      database: configService.get('DB_NAME'),
+      host: configService.get('Database').host || 'localhost',
+      port: configService.get('Database').port || 3306,
+      username: configService.get('Database').username,
+      password: configService.get('Database').password,
+      database: configService.get('Database').name,
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
       synchronize:configService.get<boolean>('DB_SYNCHRONIZE') || false,
       logging: configService.get<LoggerOptions>('DB_LOGGING') || false

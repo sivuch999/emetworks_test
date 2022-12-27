@@ -30,11 +30,9 @@ let RegisterMiddleware = class RegisterMiddleware {
             else if (req.body.events[0].type === 'memberLeft') {
                 memJoinAndLeft = { type: 'left', userId: req.body.events[0].left.members[0].userId };
             }
-            console.log(memJoinAndLeft);
             if (memJoinAndLeft) {
                 if (memJoinAndLeft.type === 'joined' && memJoinAndLeft.userId) {
                     const oaUid = memJoinAndLeft.userId;
-                    console.log(oaUid);
                     const getMember = await this.memberService.GetOne({
                         select: {
                             id: true

@@ -12,6 +12,8 @@ interface Database {
   password: string;
   port: string;
   name: string;
+  synchronize: string;
+  logging: string;
 }
 
 interface Line {
