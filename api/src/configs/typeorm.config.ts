@@ -3,9 +3,7 @@ import { TypeOrmModuleAsyncOptions, TypeOrmModuleOptions } from '@nestjs/typeorm
 import { LoggerOptions } from 'typeorm';
 
 export default class TypeOrmConfig {
-  static getOrmConfig(configService: ConfigService): TypeOrmModuleOptions {
-    console.log(configService);
-    
+  static getOrmConfig(configService: ConfigService): TypeOrmModuleOptions {    
     return {
       type: 'mysql',
       host: configService.get('Database').host || 'localhost',
