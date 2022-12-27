@@ -15,10 +15,15 @@ interface Database {
 }
 
 interface Line {
+  Liff?: Liff;
   Notify?: Notify;
   Message?: Message;
   Login?: Login;
   GroupId: string
+}
+
+interface Liff {
+  Url?: string;
 }
 
 interface Notify {

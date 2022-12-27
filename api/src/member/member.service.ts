@@ -49,6 +49,8 @@ export class MemberService {
   }
 
   public async Update(payload: Member): Promise<Member> {
+    console.log(payload);
+    
     const members = await this.memberRepository.findOneBy({
       id: payload.id,
       oaUid: payload.oaUid,

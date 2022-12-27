@@ -17,22 +17,27 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const bot_sdk_1 = require("@line/bot-sdk");
 const poll_vote_service_1 = require("../poll/poll_vote/poll_vote.service");
+const reply_service_1 = require("./reply.service");
 let ReplyController = class ReplyController {
-    constructor(configService, pollVoteService) {
+    constructor(configService, pollVoteService, replyService) {
         this.configService = configService;
         this.pollVoteService = pollVoteService;
+        this.replyService = replyService;
     }
     async Webhook(client, events) {
-        console.log(events);
         let failed = false;
         await Promise.all(events.map(async (e) => {
             try {
                 const replyToken = e.replyToken;
                 const replyMessage = [];
+                if (!e.message) {
+                    return;
+                }
                 const textMessage = e.message.text;
                 switch (e.type) {
                     case "message":
                         if (textMessage.includes(": ")) {
+                            console.log('ifffff');
                             const [code, _] = textMessage.split(": ");
                             if (code) {
                                 if (code.split("-").length > 0) {
@@ -60,6 +65,11 @@ let ReplyController = class ReplyController {
                                     }
                                 }
                             }
+                        }
+                        else if (textMessage === '#โพล') {
+                            console.log('ifffff2');
+                            const messages = await this.replyService.ReplyRequestPoll('#โพล', `${this.configService.get('Line').Liff.Url}/poll`, `${this.configService.get('Line').Liff.Url}/list`);
+                            replyMessage.push(messages);
                         }
                         break;
                     default: break;
@@ -95,7 +105,8 @@ __decorate([
 ReplyController = __decorate([
     (0, common_1.Controller)("reply"),
     __metadata("design:paramtypes", [config_1.ConfigService,
-        poll_vote_service_1.PollVoteService])
+        poll_vote_service_1.PollVoteService,
+        reply_service_1.ReplyService])
 ], ReplyController);
 exports.ReplyController = ReplyController;
 //# sourceMappingURL=reply.controller.js.map

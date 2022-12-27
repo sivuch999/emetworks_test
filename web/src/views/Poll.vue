@@ -62,7 +62,14 @@
 
         <v-row>
           <v-col cols="12">
-            <v-btn @click="submit" color="success">ยืนยัน</v-btn>
+            <v-btn @click="submit" color="success">
+              <v-progress-circular
+                v-if="progressBtnSubmit"
+                indeterminate
+                color="green"
+              ></v-progress-circular>
+              <div v-if="!progressBtnSubmit">ยืนยัน</div>
+            </v-btn>
           </v-col>
         </v-row>
 
@@ -85,24 +92,25 @@
     components: { SuccessBar, WarningBar },
     data() {
       return {
+        progressBtnSubmit: false,
         alertRef: this.$refs,
         valid: true,
         answerRules: [
-          (v: any) => !!v || 'Answer is required',
-          (v: string | any[]) => (v && v.length <= 30) || 'Answer must be less than 30 characters',
+          (v: any) => !!v || 'กรุณาระบุตัวเลือกคำตอบ',
+          (v: string | any[]) => (v && v.length <= 30) || 'คำตอบสูงสุด 30 ตัวอักษี',
         ],
         questionRules: [
-          (v: any) => !!v || 'Question is required',
+          (v: any) => !!v || 'กรุณาระบุตัวคำถาม',
         ],
-        dayExpireRules: [
-          (v: any) => !!v || 'Day Expire is required',
-          (v: number) => (v && v >= 0) || 'Day Expire  must be minimum 0' 
-        ],
+        // dayExpireRules: [
+        //   (v: any) => !!v || 'Day Expire is required',
+        //   (v: number) => (v && v >= 0) || 'Day Expire  must be minimum 0' 
+        // ],
         question: '',
         // dayExpire: 0,
         pollList: [
           {
-            answer: '123'
+            answer: ''
           }
         ],
         submitData: {}
@@ -126,16 +134,24 @@
       },
       async submit () {
         const refs: any = this.$refs
-        const filterEmptyPollList = this.pollList.filter((e: any) => e.answer != '').map((e: any) => e)
-        if (filterEmptyPollList.length > 0) {
-          const response = await $axios.post('/api/poll', {
-            question: this.question,
-            pollLists: filterEmptyPollList,
-          })
-          if (response.data) {
-            refs.Success.show()
+        const { valid } = await refs.form.validate()
+          if (valid) {
+            this.progressBtnSubmit = true
+          const filterEmptyPollList = this.pollList.filter((e: any) => e.answer != '').map((e: any) => e)
+          if (filterEmptyPollList.length > 0) {
+            const response = await $axios.post('/api/poll', {
+              question: this.question,
+              pollLists: filterEmptyPollList,
+            })
+            if (response.data) {
+              this.progressBtnSubmit = false
+              refs.Success.show()
+              refs.form.reset()
+            }
           }
         }
+        
+       
       }
     },
     mounted() {

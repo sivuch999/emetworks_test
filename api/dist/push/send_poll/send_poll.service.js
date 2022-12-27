@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SendPollService = void 0;
 const bot_sdk_1 = require("@line/bot-sdk");
 const common_1 = require("@nestjs/common");
-const flex_template_1 = require("../template/flex.template");
+const flex_template_1 = require("../../template/flex.template");
 let SendPollService = class SendPollService {
     async SendCreatePoll(oa, question, answer, expired) {
         const client = new bot_sdk_1.Client({

@@ -1,6 +1,6 @@
 import { Client, Message } from '@line/bot-sdk';
 import { Injectable } from '@nestjs/common';
-import { ContentBody, ContentFooter, TemplateContent } from '../template/flex.template';
+import { ContentBody, ContentFooter, TemplateContent } from '../../template/flex.template';
 
 @Injectable()
 export class SendPollService {

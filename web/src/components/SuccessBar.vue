@@ -20,7 +20,7 @@
             return {
             snackbar: {
                 toggle: false,
-                text: 'บันทึกสำเร็จ',
+                text: 'สำเร็จ',
                 timeout: 2000,
             },
             }

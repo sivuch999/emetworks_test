@@ -15,7 +15,7 @@ export class LineMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction) {        
     try {
-      const channelSecret = process.env.LINE_MESSAGE_SECRET
+      const channelSecret = this.configService.get('Line').Message.Secret
       
       const body = JSON.stringify(req.body);
       const signature = createHmac('SHA256', channelSecret).update(body).digest('base64');

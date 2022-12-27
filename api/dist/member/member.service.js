@@ -58,6 +58,7 @@ let MemberService = class MemberService {
     }
     async Update(payload) {
         var _a;
+        console.log(payload);
         const members = await this.memberRepository.findOneBy({
             id: payload.id,
             oaUid: payload.oaUid,

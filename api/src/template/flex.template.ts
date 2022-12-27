@@ -20,19 +20,24 @@ export const TemplateContent = (
     footer: ContentFooter
 ): any => {
     const content = {
-        'type': type,
-        'body': TemplateContentBody(
+        'type': type
+    }
+    if (body) {
+        content['body'] = TemplateContentBody(
             body.type,
             body.layout,
             body.contents,
-        ),
-        'footer': TemplateContentFooter(
+        )
+    }
+    if (footer) {
+        content['footer'] = TemplateContentFooter(
             footer.type,
             footer.layout,
             footer.contents,
             footer.optional
         )
     }
+
     return TemplateContentMergeToFlex(altText, content)
 }
 

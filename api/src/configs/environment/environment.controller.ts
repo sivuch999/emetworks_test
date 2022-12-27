@@ -16,6 +16,9 @@ export class EnvironmentController {
       },
       // Secret: process.env.SECRET,
       Line: {
+        Liff: {
+          Url: process.env.LINE_LIFF_URL
+        },
         Notify: {
           Token: process.env.LINE_NOTIFY_TOKEN,
         },

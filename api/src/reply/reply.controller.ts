@@ -3,28 +3,33 @@ import { ConfigService } from "@nestjs/config";
 import { Client } from "@line/bot-sdk";
 import { ValidationService } from "src/utils/validation/validation.service";
 import { PollVoteService } from "src/poll/poll_vote/poll_vote.service";
+import { ReplyService } from "./reply.service";
 
 @Controller("reply")
 export class ReplyController {
     constructor(
         private readonly configService: ConfigService,
         private readonly pollVoteService: PollVoteService,
+        private readonly replyService: ReplyService,
     ){}
   
     @Post(":loginClientId")
     @HttpCode(200)
-    public async Webhook(@Body("client") client: Client, @Body("events") events: any) {
-        console.log(events);
-       
+    public async Webhook(@Body("client") client: Client, @Body("events") events: any) {       
         let failed = false
         await Promise.all(events.map(async (e: any): Promise<boolean> => {
             try {
                 const replyToken = e.replyToken;            
                 const replyMessage: Array<any> = [];
+                
+                if (!e.message) { return }
+
                 const textMessage = e.message.text
                 switch (e.type) {
                     case "message":
                         if (textMessage.includes(": ")) {
+                            console.log('ifffff');
+                            
                             const [code, _] = textMessage.split(": ")
                             if (code) {
                                 if (code.split("-").length > 0) {
@@ -56,6 +61,14 @@ export class ReplyController {
                                     }
                                 }
                             }
+                        } else if (textMessage === '#โพล') {
+                            console.log('ifffff2');
+                            const messages: any = await this.replyService.ReplyRequestPoll(
+                                '#โพล',
+                                `${this.configService.get('Line').Liff.Url}/poll`,
+                                `${this.configService.get('Line').Liff.Url}/list`    
+                            )
+                            replyMessage.push(messages)
                         }
                         break;
                     default: break;

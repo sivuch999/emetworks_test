@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const line_middleware_1 = require("./common/middleware/line.middleware");
 const register_middleware_1 = require("./common/middleware/register.middleware");
 const reply_controller_1 = require("./reply.controller");
+const reply_service_1 = require("./reply.service");
 let ReplyModule = class ReplyModule {
     configure(consumer) {
         consumer
@@ -21,7 +22,9 @@ let ReplyModule = class ReplyModule {
 ReplyModule = __decorate([
     (0, common_1.Module)({
         imports: [],
-        controllers: [reply_controller_1.ReplyController]
+        controllers: [reply_controller_1.ReplyController],
+        providers: [reply_service_1.ReplyService],
+        exports: [reply_service_1.ReplyService]
     })
 ], ReplyModule);
 exports.ReplyModule = ReplyModule;
