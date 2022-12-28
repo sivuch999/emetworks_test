@@ -1,6 +1,7 @@
 export declare class Member {
     id?: number;
     oaUid?: string;
+    oaGid?: string;
     displayName?: string;
     pictureUrl?: string;
     language?: string;

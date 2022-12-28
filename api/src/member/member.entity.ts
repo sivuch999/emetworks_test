@@ -17,6 +17,9 @@ export class Member {
   @Column({ name: 'oa_uid', type: 'varchar', nullable: false })
   oaUid?: string;
 
+  @Column({ name: 'oa_gid', type: 'varchar', nullable: false })
+  oaGid?: string;
+
   @Column({ name: 'display_name', type: 'varchar', nullable: true })
   displayName?: string;
 

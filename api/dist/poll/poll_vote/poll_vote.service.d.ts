@@ -23,7 +23,7 @@ export declare class PollVoteService {
     GetOne(payload: any): Promise<PollVote>;
     Update(payload: PollVote): Promise<PollVote>;
     Delete(payload: PollVote, isDestroy?: boolean): Promise<any>;
-    VerifyVoted(oaUid: string, pollId: number, pollListNumber: number): Promise<any>;
+    VerifyVoted(source: any, pollId: number, pollListId: number): Promise<any>;
     VerifyCompletedAllVote(pollId: number): Promise<boolean>;
     SummaryPoll(pollId: number): Promise<string>;
     VerifyMemberNotVote(): Promise<any>;

@@ -12,8 +12,8 @@ export default class TypeOrmConfig {
       password: configService.get('Database').password,
       database: configService.get('Database').name,
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-      synchronize:configService.get<boolean>('DB_SYNCHRONIZE') || false,
-      logging: configService.get<LoggerOptions>('DB_LOGGING') || false
+      synchronize: configService.get<boolean>('synchronize') || false,
+      logging: true
     };
   }
 }

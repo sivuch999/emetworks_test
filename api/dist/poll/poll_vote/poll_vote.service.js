@@ -82,14 +82,15 @@ let PollVoteService = class PollVoteService {
             return await this.pollVoteRepository.softDelete(sql.id);
         }
     }
-    async VerifyVoted(oaUid, pollId, pollListNumber) {
+    async VerifyVoted(source, pollId, pollListId) {
         try {
             let message = 'เกิดข้อผิดพลาดบางอย่าง กรุณาลองใหม่อีกครั้งค่ะ';
             this.validationService.NullValidator({
-                oaUid: oaUid,
+                oaUid: source.oaUid,
                 pollId: pollId,
-                pollListNumber: pollListNumber,
+                pollListId: pollListId,
             });
+            console.log(1);
             const poll = await this.pollService.GetOne({
                 select: {
                     id: true,
@@ -101,8 +102,9 @@ let PollVoteService = class PollVoteService {
             if (!poll) {
                 throw 'get polls not found';
             }
+            console.log(2);
             if (poll.status != 1) {
-                message = 'โพลนี้ได้ปิดโหวตแล้วค่ะ';
+                message = `โพล ${poll.question} ปิดโหวตแล้วค่ะ`;
                 return {
                     message: {
                         type: 'text',
@@ -112,28 +114,32 @@ let PollVoteService = class PollVoteService {
                     isClosed: true
                 };
             }
+            console.log(3);
             const pollList = await this.pollListService.GetOne({
                 select: {
                     id: true,
                     pollId: true
                 },
                 pollId: poll.id,
-                number: pollListNumber
+                id: pollListId
             });
             if (!pollList) {
                 throw 'get poll_lists not found';
             }
+            console.log(4);
             const pollVote = await this.GetOne({
                 select: {
                     id: true,
                 },
                 pollId: poll.id,
-                oaUid: oaUid
+                oaUid: source.oaUid
             });
+            console.log(5);
             const payload = {
                 pollId: poll.id,
                 pollListId: pollList.id,
-                oaUid: oaUid
+                oaUid: source.oaUid,
+                oaGid: source.oaGid
             };
             if (!pollVote) {
                 const pollVoteCreate = await this.Create([payload]);
@@ -202,14 +208,17 @@ let PollVoteService = class PollVoteService {
       GROUP BY
         poll_lists.id
       ORDER BY
-        COUNT(poll_votes.id) DESC
+        COUNT(poll_votes.id) DESC,
+        poll_lists.id ASC
     `);
         if (rawPollSummary) {
-            let message = '';
-            rawPollSummary.map((e) => {
-                message += `${e.answer}(${e.count}) / `;
-            });
-            return message;
+            if (rawPollSummary.length > 0) {
+                let message = '';
+                rawPollSummary.map((e) => {
+                    message += `${e.answer}(${e.count}) / `;
+                });
+                return message.slice(0, -3);
+            }
         }
         return null;
     }
@@ -220,6 +229,7 @@ let PollVoteService = class PollVoteService {
                     id: true,
                     question: true,
                     oaUid: true,
+                    oaGid: true
                 },
                 isClosed: false
             });
@@ -246,6 +256,7 @@ let PollVoteService = class PollVoteService {
                 if (members && members.length > 0) {
                     membersNotVote.push({
                         pollId: e.id,
+                        groupId: e.oaGid,
                         question: e.question,
                         members: members
                     });

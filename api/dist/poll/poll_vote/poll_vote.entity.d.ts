@@ -5,6 +5,7 @@ export declare class PollVote {
     pollId?: number;
     pollListId?: number;
     oaUid?: string;
+    oaGid?: string;
     createdAt?: Date;
     updatedAt?: Date;
     deletedAt?: Date;

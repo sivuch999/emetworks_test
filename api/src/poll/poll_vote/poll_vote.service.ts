@@ -76,16 +76,18 @@ export class PollVoteService {
     }
   }
 
-  public async VerifyVoted(oaUid: string, pollId: number, pollListNumber: number): Promise<any> {
+  public async VerifyVoted(source: any, pollId: number, pollListId: number): Promise<any> {
     try {
       let message = 'เกิดข้อผิดพลาดบางอย่าง กรุณาลองใหม่อีกครั้งค่ะ'
 
       this.validationService.NullValidator({
-        oaUid: oaUid,
+        oaUid: source.oaUid,
         pollId: pollId,
-        pollListNumber: pollListNumber,
-      })      
+        pollListId: pollListId,
+      })
 
+      console.log(1);
+      
       // validate already poll
       const poll = await this.pollService.GetOne(
         {
@@ -101,12 +103,13 @@ export class PollVoteService {
       if (!poll) {
         throw 'get polls not found'
       }
+      console.log(2);
 
       // validate poll expired time
       // const now = new Date()
       // let unix = DatetimeToUnix(now, 0)
       if (poll.status != 1) {
-        message = 'โพลนี้ได้ปิดโหวตแล้วค่ะ'
+        message = `โพล ${poll.question} ปิดโหวตแล้วค่ะ`
         return {
           message: {
             type: 'text',
@@ -117,6 +120,8 @@ export class PollVoteService {
         }
       }
   
+      console.log(3);
+
       // validate already poll_lists
       const pollList = await this.pollListService.GetOne(
         {
@@ -125,12 +130,14 @@ export class PollVoteService {
             pollId: true
           },
           pollId: poll.id,
-          number: pollListNumber
+          id: pollListId
         }
       )
       if (!pollList) {
         throw 'get poll_lists not found'
       }
+
+      console.log(4);
 
       // validate poll anwser already vote
       const pollVote = await this.GetOne(
@@ -139,14 +146,17 @@ export class PollVoteService {
             id: true,
           },
           pollId: poll.id,
-          oaUid: oaUid
+          oaUid: source.oaUid
         }
       )
+
+      console.log(5);
 
       const payload: PollVote = {
         pollId: poll.id,
         pollListId: pollList.id,
-        oaUid: oaUid
+        oaUid: source.oaUid,
+        oaGid: source.oaGid
       }      
       if (!pollVote) { // case not vote     
         const pollVoteCreate = await this.Create([payload])
@@ -219,15 +229,18 @@ export class PollVoteService {
       GROUP BY
         poll_lists.id
       ORDER BY
-        COUNT(poll_votes.id) DESC
+        COUNT(poll_votes.id) DESC,
+        poll_lists.id ASC
     `)
     
     if (rawPollSummary) {
-      let message = ''
-      rawPollSummary.map((e: any) => {
-        message += `${e.answer}(${e.count}) / `
-      })
-      return message
+      if (rawPollSummary.length > 0) {
+        let message = ''
+        rawPollSummary.map((e: any) => {
+          message += `${e.answer}(${e.count}) / `
+        })
+        return message.slice(0, -3)
+      }
     }
 
     return null
@@ -243,6 +256,7 @@ export class PollVoteService {
             id: true,
             question: true,
             oaUid: true,
+            oaGid: true
           },
           isClosed: false
         }
@@ -273,6 +287,7 @@ export class PollVoteService {
           membersNotVote.push(
             {
               pollId: e.id,
+              groupId: e.oaGid,
               question: e.question,
               members: members
             }

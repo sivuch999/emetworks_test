@@ -31,8 +31,9 @@ let PollController = class PollController {
     async create(body, req) {
         try {
             this.validationService.NullValidator({
-                poll_lists: body.pollLists,
+                pollLists: body.pollLists,
                 oaUid: req['oa']['sub'],
+                oaGid: body.oaGid,
             });
             if (body.pollLists.length > poll_1.POLL_LIST_MAX) {
                 throw `The number of polls is greater than ${poll_1.POLL_LIST_MAX}`;
@@ -41,21 +42,31 @@ let PollController = class PollController {
                 Create({
                 question: body.question,
                 oaUid: req['oa']['sub'],
+                oaGid: body.oaGid,
                 pollLists: body.pollLists,
             });
             if (!pollCreate) {
                 throw 'create polls failed';
             }
-            const qCode = pollCreate.id.toString().padStart(5, "0");
-            const question = `${qCode}: ${pollCreate.question}`;
+            const data = pollCreate.pollLists.map((e) => {
+                console.log(e);
+                const obj = { pollId: pollCreate.id, pollListId: e.id };
+                return {
+                    data: new URLSearchParams(obj).toString()
+                };
+            });
+            console.log(data);
+            const question = `${pollCreate.question}`;
             const answer = pollCreate.pollLists.map((e) => {
+                const dataObj = { pollId: pollCreate.id, pollListId: e.id };
                 return {
                     label: e.answer,
-                    text: `${qCode}-${e.number}: ${e.answer}`
+                    data: new URLSearchParams(dataObj).toString(),
+                    text: `โพล ${pollCreate.question} ตอบ ${e.answer}`
                 };
             });
             await this.sendPollService.SendCreatePoll({
-                to: this.configService.get('Line').GroupId,
+                to: body.oaGid,
                 lineMessageToken: this.configService.get('Line').Message.Token,
                 lineMessageSecret: this.configService.get('Line').Message.Secret
             }, question, answer, null);
@@ -144,19 +155,25 @@ let PollController = class PollController {
     async notVote() {
         try {
             const membersNotVote = await this.pollVoteService.VerifyMemberNotVote();
-            const messages = [];
-            console.log(membersNotVote);
+            const push = [];
             if (membersNotVote) {
-                membersNotVote.forEach((e) => {
-                    const qCode = e.pollId.toString().padStart(5, "0");
+                membersNotVote.forEach((e, k) => {
+                    push[k] = {
+                        to: e.groupId,
+                        message: ''
+                    };
                     let memberName = '';
                     e.members.forEach((m) => {
                         memberName += `${m.display_name}, `;
                     });
-                    messages.push(`(${qCode}: ${e.question}) ${memberName.slice(0, -2)} ยังไม่ได้ตอบ กรุณาตอบ poll ด้วยค่ะ`);
+                    push[k].message = `(${e.question}) ${memberName.slice(0, -2)} ยังไม่ได้ตอบ กรุณาตอบ poll ด้วยค่ะ`;
                 });
+                await this.sendPollService.SendReminderPoll({
+                    lineMessageToken: this.configService.get('Line').Message.Token,
+                    lineMessageSecret: this.configService.get('Line').Message.Secret
+                }, push);
             }
-            return messages;
+            return push;
         }
         catch (error) {
             console.log(error);

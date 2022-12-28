@@ -26,7 +26,8 @@ let PollService = class PollService {
     async Create(payload) {
         this.validationService.NullValidator({
             question: payload.question,
-            oaUid: payload.oaUid
+            oaUid: payload.oaUid,
+            oaGid: payload.oaGid
         });
         payload.pollLists = payload.pollLists.map((e, k) => {
             return Object.assign(Object.assign({}, e), { number: k + 1 });

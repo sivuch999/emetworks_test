@@ -30,46 +30,56 @@ let ReplyController = class ReplyController {
             try {
                 const replyToken = e.replyToken;
                 const replyMessage = [];
-                if (!e.message) {
-                    return;
-                }
-                const textMessage = e.message.text;
                 switch (e.type) {
-                    case "message":
-                        if (textMessage.includes(": ")) {
-                            console.log('ifffff');
-                            const [code, _] = textMessage.split(": ");
-                            if (code) {
-                                if (code.split("-").length > 0) {
-                                    const [pollCode, pollListId] = code.split("-");
-                                    const oaUid = e.source.userId;
-                                    const pollId = Number(pollCode);
-                                    const voted = await this.pollVoteService.VerifyVoted(oaUid, pollId, Number(pollListId));
-                                    replyMessage.push(voted.message);
-                                    if (!voted.isClosed) {
-                                        const isCompleted = await this.pollVoteService.VerifyCompletedAllVote(pollId);
-                                        if (isCompleted) {
-                                            const qCode = pollId.toString().padStart(5, "0");
-                                            replyMessage.push({
-                                                type: 'text',
-                                                text: `(${qCode}: ${voted.question}) ปิดโหวตแล้วค่ะ`
-                                            });
-                                            const summary = await this.pollVoteService.SummaryPoll(pollId);
-                                            if (summary) {
-                                                replyMessage.push({
-                                                    type: 'text',
-                                                    text: `สรุปผลโหวต: ${summary}`
-                                                });
-                                            }
-                                        }
-                                    }
+                    case 'postback':
+                        const params = new URLSearchParams(e.postback.data);
+                        const pollId = Number(params.get('pollId'));
+                        const pollListId = Number(params.get('pollListId'));
+                        const source = {
+                            oaUid: e.source.userId,
+                            oaGid: e.source.groupId,
+                        };
+                        if (!pollId || !pollListId || !source.oaUid || !source.oaGid) {
+                            break;
+                        }
+                        const voted = await this.pollVoteService.VerifyVoted(source, pollId, pollListId);
+                        if (!voted) {
+                            break;
+                        }
+                        replyMessage.push(voted.message);
+                        if (!voted.isClosed) {
+                            const isCompleted = await this.pollVoteService.VerifyCompletedAllVote(pollId);
+                            if (isCompleted) {
+                                replyMessage.push({
+                                    type: 'text',
+                                    text: `โพล ${voted.question} ปิดโหวตแล้วค่ะ`
+                                });
+                                const summary = await this.pollVoteService.SummaryPoll(pollId);
+                                if (summary) {
+                                    replyMessage.push({
+                                        type: 'text',
+                                        text: `สรุปผลโหวต: ${summary}`
+                                    });
                                 }
                             }
                         }
-                        else if (textMessage === '#โพล') {
-                            console.log('ifffff2');
-                            const messages = await this.replyService.ReplyRequestPoll('#โพล', `${this.configService.get('Line').Liff.Url}/poll`, `${this.configService.get('Line').Liff.Url}/list`);
-                            replyMessage.push(messages);
+                        break;
+                    case 'message':
+                        if (!e.message) {
+                            return;
+                        }
+                        const textMessage = e.message.text;
+                        if (textMessage === '#โพล') {
+                            if (e.source.groupId) {
+                                const messages = await this.replyService.ReplyRequestPoll('#โพล', `${this.configService.get('Line').Liff.Url}/poll?groupId=${e.source.groupId}`, `${this.configService.get('Line').Liff.Url}/list?groupId=${e.source.groupId}`);
+                                replyMessage.push(messages);
+                            }
+                            else {
+                                replyMessage.push({
+                                    type: 'text',
+                                    text: `เกิดเข้าผิดพลาด ไม่พบรหัสกลุ่ม กรุณาลองใหม่อีกครั้งค่ะ`
+                                });
+                            }
                         }
                         break;
                     default: break;
@@ -94,16 +104,16 @@ let ReplyController = class ReplyController {
     }
 };
 __decorate([
-    (0, common_1.Post)(":loginClientId"),
+    (0, common_1.Post)(':loginClientId'),
     (0, common_1.HttpCode)(200),
-    __param(0, (0, common_1.Body)("client")),
-    __param(1, (0, common_1.Body)("events")),
+    __param(0, (0, common_1.Body)('client')),
+    __param(1, (0, common_1.Body)('events')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [bot_sdk_1.Client, Object]),
     __metadata("design:returntype", Promise)
 ], ReplyController.prototype, "Webhook", null);
 ReplyController = __decorate([
-    (0, common_1.Controller)("reply"),
+    (0, common_1.Controller)('reply'),
     __metadata("design:paramtypes", [config_1.ConfigService,
         poll_vote_service_1.PollVoteService,
         reply_service_1.ReplyService])

@@ -1,9 +1,5 @@
 <template>
-  <v-card
-    class="w-full mt-5 mx-2"
-    v-for="item in polls" :key="item.id"
-  >
-
+  <v-card class="w-full mt-5 mx-2" v-for="item in polls" :key="item.id">
     <v-card-text>
       <div>{{ item.code }}: {{ item.question }}</div>
     </v-card-text>
@@ -12,7 +8,6 @@
         {{ item.close }}
       </v-btn>
     </v-card-text>
-
   </v-card>
 
   <ConfirmDialog ref="Confirm"/>
@@ -26,24 +21,24 @@
   import ConfirmDialog from "../components/ConfirmDialog.vue";
   import SuccessBar from "../components/SuccessBar.vue";
 
+  type Poll = {
+    id: number,
+    code: string,
+    question: string,
+    close: string,
+  }
+  
   export default defineComponent({
     components: { ConfirmDialog, SuccessBar },
     data() {
       return {
-        polls: [
-          {
-            id: 0,
-            code: '',
-            question: '',
-            close: '',
-          }
-        ],
-      }
+        polls: [],
+      } as { polls: Poll[] }
     },
     methods: {
       async getList() {
         const response = await $axios.get('/api/poll/list?isClosed=false')
-        if (response.data) {
+        if (response.data && response.data.length > 0) {
           this.polls = response.data.map((e: any) => {
             return {
               id: e.id,
@@ -52,6 +47,8 @@
               close: 'ปิดโพล'
             }
           })
+        } else {
+          this.polls = []
         }
       },
       async closePoll (id: number) {

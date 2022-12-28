@@ -63,9 +63,10 @@ let SendPollService = class SendPollService {
                     'style': 'secondary',
                     'height': 'sm',
                     'action': {
-                        'type': 'message',
+                        'type': 'postback',
                         'label': e.label,
-                        'text': e.text
+                        'data': e.data,
+                        'displayText': e.text
                     }
                 };
             })
@@ -106,7 +107,7 @@ let SendPollService = class SendPollService {
         ];
         await client.pushMessage(oa.to, pushMsg).catch((e) => { console.log(e); });
     }
-    async SendReminderPoll(oa, messages) {
+    async SendReminderPoll(oa, push) {
         const client = new bot_sdk_1.Client({
             'channelAccessToken': oa.lineMessageToken,
             'channelSecret': oa.lineMessageSecret
@@ -114,13 +115,9 @@ let SendPollService = class SendPollService {
         if (!client) {
             throw 'verify line token failed';
         }
-        const pushMsg = messages.map((e) => {
-            return {
-                type: 'text',
-                text: e
-            };
+        push.forEach(async (e) => {
+            await client.pushMessage(e.to, { type: 'text', text: e.message }).catch((e) => { console.log(e); });
         });
-        await client.pushMessage(oa.to, pushMsg).catch((e) => { console.log(e); });
     }
 };
 SendPollService = __decorate([

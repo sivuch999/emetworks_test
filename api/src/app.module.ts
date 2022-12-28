@@ -25,7 +25,7 @@ const environmentController = new EnvironmentController();
   imports: [
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
-      envFilePath: [(process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : '.env')],
+      envFilePath: [(process.env.NODE_ENV ? `.${process.env.NODE_ENV}.env` : '.env')],
       isGlobal: true,
       load: [environmentController.Get],
       validationSchema: Joi.object({

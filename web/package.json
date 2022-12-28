@@ -5,7 +5,9 @@
     "serve": "vite preview",
     "build": "vite build",
     "dev": "vite",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "vite build & firebase deploy",
+    "fb:deploy": "firebase deploy"
   },
   "dependencies": {
     "@line/liff": "2.21.4",

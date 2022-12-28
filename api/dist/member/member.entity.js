@@ -22,6 +22,10 @@ __decorate([
     __metadata("design:type", String)
 ], Member.prototype, "oaUid", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'oa_gid', type: 'varchar', nullable: false }),
+    __metadata("design:type", String)
+], Member.prototype, "oaGid", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'display_name', type: 'varchar', nullable: true }),
     __metadata("design:type", String)
 ], Member.prototype, "displayName", void 0);

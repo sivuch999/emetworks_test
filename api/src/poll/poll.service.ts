@@ -15,7 +15,8 @@ export class PollService {
   public async Create(payload: Poll): Promise<Poll> {
     this.validationService.NullValidator({
       question: payload.question,
-      oaUid: payload.oaUid
+      oaUid: payload.oaUid,
+      oaGid: payload.oaGid
     });
     payload.pollLists = payload.pollLists.map((e: any, k: number) => {
       return {

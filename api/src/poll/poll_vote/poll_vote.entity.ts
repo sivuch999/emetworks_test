@@ -29,6 +29,9 @@ export class PollVote {
   @Column({ name: 'oa_uid', type: 'varchar', nullable: false })
   oaUid?: string;
 
+  @Column({ name: 'oa_gid', type: 'varchar', nullable: false })
+  oaGid?: string;
+
   @Index()
   @CreateDateColumn({ name: 'created_at' })
   createdAt?: Date;

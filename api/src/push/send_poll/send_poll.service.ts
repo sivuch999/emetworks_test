@@ -68,10 +68,16 @@ export class SendPollService {
           'type': 'button',
           'style': 'secondary',
           'height': 'sm',
+          // 'action': {
+          //   'type': 'message',
+          //   'label': e.label,
+          //   'text': e.text
+          // },
           'action': {
-            'type': 'message',
+            'type': 'postback',
             'label': e.label,
-            'text': e.text
+            'data': e.data,
+            'displayText': e.text
           }
         }
       })
@@ -127,7 +133,7 @@ export class SendPollService {
 
   }
 
-  public async SendReminderPoll(oa: any, messages: string[]): Promise<any> {
+  public async SendReminderPoll(oa: any, push: any[]): Promise<any> {
     const client = new Client(
       {
         'channelAccessToken': oa.lineMessageToken,
@@ -138,14 +144,9 @@ export class SendPollService {
       throw 'verify line token failed'
     }
 
-    const pushMsg = messages.map((e: any): Message => {
-      return {
-        type: 'text',
-        text: e
-      }
+    push.forEach(async (e: any) => {
+      await client.pushMessage(e.to, { type: 'text', text: e.message }).catch((e: any) => { console.log(e) });
     });
-
-    await client.pushMessage(oa.to, pushMsg).catch((e: any) => { console.log(e) });
 
   }
 

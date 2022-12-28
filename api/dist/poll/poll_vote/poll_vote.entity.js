@@ -34,6 +34,10 @@ __decorate([
     __metadata("design:type", String)
 ], PollVote.prototype, "oaUid", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'oa_gid', type: 'varchar', nullable: false }),
+    __metadata("design:type", String)
+], PollVote.prototype, "oaGid", void 0);
+__decorate([
     (0, typeorm_1.Index)(),
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

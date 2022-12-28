@@ -38,7 +38,7 @@ bootstrap();
 //   .catch((error) => console.error('Nest broken', error));
 
 //  export const api: functions.HttpsFunction = functions
-//   // .runWith({ minInstances: 1 })
+//   .runWith({ minInstances: 1 })
 //   .region('asia-southeast1')
 //   .https.onRequest(server);
 

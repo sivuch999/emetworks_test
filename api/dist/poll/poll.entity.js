@@ -25,6 +25,10 @@ __decorate([
     __metadata("design:type", String)
 ], Poll.prototype, "oaUid", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'oa_gid', type: 'varchar', nullable: false }),
+    __metadata("design:type", String)
+], Poll.prototype, "oaGid", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'varchar', nullable: false }),
     __metadata("design:type", String)
 ], Poll.prototype, "question", void 0);

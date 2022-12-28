@@ -3,6 +3,7 @@ import { PollVote } from './poll_vote/poll_vote.entity';
 export declare class Poll {
     id?: number;
     oaUid?: string;
+    oaGid?: string;
     question?: string;
     status?: number;
     createdAt?: Date;

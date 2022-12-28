@@ -14,7 +14,10 @@ export class RegisterMiddleware implements NestMiddleware {
   ) {}
   
     async use(req: Request, res: Response, next: NextFunction) {
-        try {            
+        try {
+
+            console.log(req.body.events)
+
             let memJoinAndLeft: { type: string, userId: string }            
 
             if (req.body.events[0].type === 'memberJoined') {
@@ -28,6 +31,10 @@ export class RegisterMiddleware implements NestMiddleware {
                     const oaUid = memJoinAndLeft.userId
                     
                     // verify already member
+
+                    console.log('oaUid', oaUid);
+                    
+
                     const getMember = await this.memberService.GetOne(
                         {
                             select: {

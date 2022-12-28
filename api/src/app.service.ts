@@ -14,31 +14,31 @@ export class AppService {
 
   @Cron('0 0 1 * * *')
   async handleCronMemberNotVote() {
-    const now = new Date()
-    console.log(now);
+    console.log(new Date());
     
     const membersNotVote = await this.pollVoteService.VerifyMemberNotVote()
-    const messages: string[] = []
-    
+    const push: any = []
+        
     if (membersNotVote) {
-      membersNotVote.forEach((e: any) => {
-        const qCode = e.pollId.toString().padStart(5, "0")
+      membersNotVote.forEach((e: any, k: number) => {          
+        push[k] = {
+          to: e.groupId,
+          message: ''
+        }
         let memberName = ''
         e.members.forEach((m: any) => {
           memberName += `${m.display_name}, `
         });
-        messages.push(`(${qCode}: ${e.question}) ${memberName.slice(0, -2)} ยังไม่ได้ตอบ กรุณาตอบ poll ด้วยค่ะ`)
-      });
-      
+        push[k].message = `(${e.question}) ${memberName.slice(0, -2)} ยังไม่ได้ตอบ กรุณาตอบ poll ด้วยค่ะ`
+      });        
+
       await this.sendPollService.SendReminderPoll(
         {
-          to: this.configService.get('Line').GroupId,
           lineMessageToken: this.configService.get('Line').Message.Token,
           lineMessageSecret: this.configService.get('Line').Message.Secret
         },
-        messages,
+        push,
       )
-      
     }
   }
 }

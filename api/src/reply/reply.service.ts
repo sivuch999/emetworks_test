@@ -1,5 +1,4 @@
 
-import {  Message } from '@line/bot-sdk';
 import { Injectable } from '@nestjs/common';
 import { ContentBody, TemplateContent } from '../template/flex.template';
 

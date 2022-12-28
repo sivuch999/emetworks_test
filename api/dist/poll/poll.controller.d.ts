@@ -15,6 +15,7 @@ export declare class PollController {
     create(body: {
         question: string;
         oaUid: string;
+        oaGid: string;
         day: number;
         pollLists: PollList[];
     }, req: Request): Promise<any>;

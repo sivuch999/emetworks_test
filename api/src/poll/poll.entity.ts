@@ -20,6 +20,9 @@ export class Poll {
   @Column({ name: 'oa_uid', type: 'varchar', nullable: false })
   oaUid?: string;
 
+  @Column({ name: 'oa_gid', type: 'varchar', nullable: false })
+  oaGid?: string;
+
   @Column({ type: 'varchar', nullable: false })
   question?: string;
 
