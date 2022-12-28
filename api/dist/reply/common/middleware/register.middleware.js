@@ -24,52 +24,56 @@ let RegisterMiddleware = class RegisterMiddleware {
     async use(req, res, next) {
         try {
             console.log(req.body.events);
-            let memJoinAndLeft;
+            let mAction;
             if (req.body.events[0].type === 'memberJoined') {
-                memJoinAndLeft = { type: 'joined', userId: req.body.events[0].joined.members[0].userId };
+                mAction.type = 'joined';
+                mAction.userIds = req.body.events[0].joined.members[0].map((e) => e.userId);
             }
             else if (req.body.events[0].type === 'memberLeft') {
-                memJoinAndLeft = { type: 'left', userId: req.body.events[0].left.members[0].userId };
+                mAction.type = 'left';
+                mAction.userIds = req.body.events[0].left.members[0].map((e) => e.userId);
             }
-            if (memJoinAndLeft) {
-                if (memJoinAndLeft.type === 'joined' && memJoinAndLeft.userId) {
-                    const oaUid = memJoinAndLeft.userId;
-                    console.log('oaUid', oaUid);
-                    const getMember = await this.memberService.GetOne({
-                        select: {
-                            id: true
-                        },
-                        oaUid: oaUid
-                    });
-                    if (!getMember) {
-                        const getProfile = await axios_1.default.get(`https://api.line.me/v2/bot/profile/${oaUid}`, {
-                            headers: {
-                                Authorization: `Bearer ${this.configService.get("Line").Message.Token}`,
+            if (mAction) {
+                mAction.userIds.map(async (userId) => {
+                    if (mAction.type === 'joined' && userId > 0) {
+                        const getMember = await this.memberService.GetOne({
+                            select: {
+                                id: true
+                            },
+                            oaUid: userId
+                        });
+                        if (!getMember) {
+                            const getProfile = await axios_1.default.get(`https://api.line.me/v2/bot/profile/${userId}`, {
+                                headers: {
+                                    Authorization: `Bearer ${this.configService.get("Line").Message.Token}`,
+                                }
+                            });
+                            if (!getProfile || getProfile.status != 200) {
+                                throw 'get LINE profile is fail';
                             }
-                        });
-                        if (!getProfile || getProfile.status != 200) {
-                            throw 'get LINE profile is fail';
+                            await this.memberService.Create({
+                                oaUid: userId,
+                                displayName: getProfile.data.displayName,
+                                pictureUrl: getProfile.data.pictureUrl,
+                                language: ((getProfile.data.language) ? getProfile.data.language : null)
+                            });
                         }
-                        await this.memberService.Create({
-                            oaUid: oaUid,
-                            displayName: getProfile.data.displayName,
-                            pictureUrl: getProfile.data.pictureUrl,
-                            language: ((getProfile.data.language) ? getProfile.data.language : null)
-                        });
+                        else {
+                            if (getMember.isActive === false) {
+                                await this.memberService.Update({
+                                    oaUid: userId,
+                                    isActive: true
+                                });
+                            }
+                        }
                     }
-                    else {
+                    else if (mAction.type === 'left' && userId) {
                         await this.memberService.Update({
-                            oaUid: oaUid,
-                            isActive: true
+                            oaUid: userId,
+                            isActive: false
                         });
                     }
-                }
-                else if (memJoinAndLeft.type === 'left' && memJoinAndLeft.userId) {
-                    await this.memberService.Update({
-                        oaUid: memJoinAndLeft.userId,
-                        isActive: false
-                    });
-                }
+                });
             }
             next();
         }
