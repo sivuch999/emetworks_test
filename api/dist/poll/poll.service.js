@@ -18,10 +18,14 @@ const poll_entity_1 = require("./poll.entity");
 const typeorm_1 = require("typeorm");
 const typeorm_2 = require("@nestjs/typeorm");
 const validation_service_1 = require("../utils/validation/validation.service");
+const send_poll_service_1 = require("../push/send_poll/send_poll.service");
+const config_1 = require("@nestjs/config");
 let PollService = class PollService {
-    constructor(pollsRepository, validationService) {
+    constructor(pollsRepository, validationService, sendPollService, configService) {
         this.pollsRepository = pollsRepository;
         this.validationService = validationService;
+        this.sendPollService = sendPollService;
+        this.configService = configService;
     }
     async Create(payload) {
         this.validationService.NullValidator({
@@ -49,6 +53,7 @@ let PollService = class PollService {
                 sql.where = [
                     {
                         oaUid: payload.oaUid,
+                        oaGid: payload.oaGid,
                         status: (0, typeorm_1.In)([2, 3])
                     }
                 ];
@@ -56,6 +61,7 @@ let PollService = class PollService {
             else {
                 sql.where = {
                     oaUid: payload.oaUid,
+                    oaGid: payload.oaGid,
                     status: 1
                 };
             }
@@ -67,6 +73,7 @@ let PollService = class PollService {
             select: payload.select,
             where: {
                 id: payload.id,
+                oaUid: payload.oaUid
             },
         };
         return await this.pollsRepository.findOne(sql);
@@ -74,17 +81,69 @@ let PollService = class PollService {
     async Update(payload) {
         var _a;
         const polls = await this.pollsRepository.findOneBy({
-            id: payload.id,
+            id: payload.id
         });
         polls.status = (_a = payload.status) !== null && _a !== void 0 ? _a : undefined;
         return await this.pollsRepository.save(polls);
+    }
+    async ClosePoll(source, pollId) {
+        let message = 'เกิดข้อผิดพลาดบางอย่าง หรือคุณไม่มีสิทธิ์การจัดการโพลนี้ กรุณาลองใหม่อีกครั้งค่ะ';
+        this.validationService.NullValidator({
+            oaUid: source.oaUid,
+            oaGid: source.oaGid,
+            pollId: pollId,
+        });
+        const poll = await this.GetOne({
+            select: {
+                id: true,
+                question: true,
+                status: true
+            },
+            id: pollId,
+            oaUid: source.oaUid
+        });
+        if (!poll) {
+            return {
+                message: {
+                    type: 'text',
+                    text: message
+                },
+                isClosed: true
+            };
+        }
+        if (poll.status != 1) {
+            message = `โพล ${poll.question} ปิดโหวตแล้วค่ะ`;
+            return {
+                message: {
+                    type: 'text',
+                    text: message
+                },
+                question: poll.question,
+                isClosed: true
+            };
+        }
+        const pollUpdate = await this.Update({
+            id: pollId,
+            status: 2
+        });
+        if (!pollUpdate) {
+            throw 'close poll failed';
+        }
+        await this.sendPollService.SendClosedPoll({
+            to: source.oaGid,
+            lineMessageToken: this.configService.get('Line').Message.Token,
+            lineMessageSecret: this.configService.get('Line').Message.Secret
+        }, pollUpdate.id, pollUpdate.question);
+        return true;
     }
 };
 PollService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_2.InjectRepository)(poll_entity_1.Poll)),
     __metadata("design:paramtypes", [typeorm_1.Repository,
-        validation_service_1.ValidationService])
+        validation_service_1.ValidationService,
+        send_poll_service_1.SendPollService,
+        config_1.ConfigService])
 ], PollService);
 exports.PollService = PollService;
 //# sourceMappingURL=poll.service.js.map

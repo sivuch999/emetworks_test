@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { MemberService } from 'src/member/member.service';
 import { Member } from 'src/member/member.entity';
 import { SendPollService } from 'src/push/send_poll/send_poll.service';
+import { Message } from '@line/bot-sdk';
 export declare class PollVoteService {
     private readonly pollVoteRepository;
     private readonly memberRepository;
@@ -25,6 +26,6 @@ export declare class PollVoteService {
     Delete(payload: PollVote, isDestroy?: boolean): Promise<any>;
     VerifyVoted(source: any, pollId: number, pollListId: number): Promise<any>;
     VerifyCompletedAllVote(pollId: number): Promise<boolean>;
-    SummaryPoll(pollId: number): Promise<string>;
+    SummaryPoll(pollId: number): Promise<Message[]>;
     VerifyMemberNotVote(): Promise<any>;
 }

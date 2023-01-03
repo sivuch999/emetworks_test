@@ -24,57 +24,72 @@ let RegisterMiddleware = class RegisterMiddleware {
     async use(req, res, next) {
         try {
             console.log(req.body.events);
-            let mAction;
-            if (req.body.events[0].type === 'memberJoined') {
-                mAction.type = 'joined';
-                mAction.userIds = req.body.events[0].joined.members[0].map((e) => e.userId);
-            }
-            else if (req.body.events[0].type === 'memberLeft') {
-                mAction.type = 'left';
-                mAction.userIds = req.body.events[0].left.members[0].map((e) => e.userId);
-            }
-            if (mAction) {
-                mAction.userIds.map(async (userId) => {
-                    if (mAction.type === 'joined' && userId > 0) {
-                        const getMember = await this.memberService.GetOne({
-                            select: {
-                                id: true
-                            },
-                            oaUid: userId
-                        });
-                        if (!getMember) {
-                            const getProfile = await axios_1.default.get(`https://api.line.me/v2/bot/profile/${userId}`, {
-                                headers: {
-                                    Authorization: `Bearer ${this.configService.get("Line").Message.Token}`,
+            await Promise.all(req.body.events.map(async (event) => {
+                try {
+                    let mAction = { type: null, userIds: null };
+                    let groupId = event.source.groupId;
+                    if (event.type === 'memberJoined') {
+                        mAction.type = 'joined';
+                        mAction.userIds = event.joined.members.map((e) => e.userId);
+                    }
+                    else if (event.type === 'memberLeft') {
+                        mAction.type = 'left';
+                        mAction.userIds = event.left.members.map((e) => e.userId);
+                    }
+                    if (mAction.type) {
+                        mAction.userIds.map(async (userId) => {
+                            if (mAction.type === 'joined' && userId) {
+                                const getMember = await this.memberService.GetOne({
+                                    select: {
+                                        id: true,
+                                        isActive: true
+                                    },
+                                    oaUid: userId,
+                                    oaGid: groupId
+                                });
+                                if (!getMember) {
+                                    const getProfile = await axios_1.default.get(`https://api.line.me/v2/bot/profile/${userId}`, {
+                                        headers: {
+                                            Authorization: `Bearer ${this.configService.get("Line").Message.Token}`,
+                                        }
+                                    });
+                                    if (!getProfile || getProfile.status != 200) {
+                                        throw 'get LINE profile is fail';
+                                    }
+                                    await this.memberService.Create({
+                                        oaUid: userId,
+                                        displayName: getProfile.data.displayName,
+                                        pictureUrl: getProfile.data.pictureUrl,
+                                        language: getProfile.data.language ? getProfile.data.language : null,
+                                        oaGid: groupId
+                                    });
                                 }
-                            });
-                            if (!getProfile || getProfile.status != 200) {
-                                throw 'get LINE profile is fail';
+                                else {
+                                    if (getMember.isActive === false) {
+                                        console.log('false');
+                                        await this.memberService.Update({
+                                            oaUid: userId,
+                                            oaGid: groupId,
+                                            isActive: true
+                                        });
+                                    }
+                                }
                             }
-                            await this.memberService.Create({
-                                oaUid: userId,
-                                displayName: getProfile.data.displayName,
-                                pictureUrl: getProfile.data.pictureUrl,
-                                language: ((getProfile.data.language) ? getProfile.data.language : null)
-                            });
-                        }
-                        else {
-                            if (getMember.isActive === false) {
+                            else if (mAction.type === 'left' && userId) {
                                 await this.memberService.Update({
                                     oaUid: userId,
-                                    isActive: true
+                                    oaGid: groupId,
+                                    isActive: false
                                 });
                             }
-                        }
-                    }
-                    else if (mAction.type === 'left' && userId) {
-                        await this.memberService.Update({
-                            oaUid: userId,
-                            isActive: false
                         });
                     }
-                });
-            }
+                }
+                catch (error) {
+                    console.log(error);
+                    return;
+                }
+            }));
             next();
         }
         catch (error) {

@@ -3,6 +3,8 @@ import { Poll } from './poll.entity';
 import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ValidationService } from 'src/utils/validation/validation.service';
+import { SendPollService } from 'src/push/send_poll/send_poll.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PollService {
@@ -10,6 +12,8 @@ export class PollService {
     @InjectRepository(Poll)
     private pollsRepository: Repository<Poll>,
     private readonly validationService: ValidationService,
+    private sendPollService: SendPollService,
+    private configService: ConfigService
   ) {}
 
   public async Create(payload: Poll): Promise<Poll> {
@@ -45,6 +49,7 @@ export class PollService {
         sql.where = [
           {
             oaUid: payload.oaUid,
+            oaGid: payload.oaGid,
             status: In([2, 3])
           }
         ]
@@ -52,6 +57,7 @@ export class PollService {
         sql.where =  {
           // expired: MoreThanOrEqual(unix),
           oaUid: payload.oaUid,
+          oaGid: payload.oaGid,
           status: 1
         }
       }
@@ -65,6 +71,7 @@ export class PollService {
       select: payload.select,
       where: {
         id: payload.id,
+        oaUid: payload.oaUid
         // expired: payload.expired,
       },
     };
@@ -73,21 +80,85 @@ export class PollService {
 
   public async Update(payload: Poll): Promise<Poll> {
     const polls = await this.pollsRepository.findOneBy({
-      id: payload.id,
-
+      id: payload.id
     });
     polls.status = payload.status ?? undefined;
     return await this.pollsRepository.save(polls);
   }
 
-  // public async Delete(payload: Poll, isDestroy = false): Promise<any> {
-  //   if (isDestroy) {
-  //     const sql: Poll = payload;
-  //     return await this.pollsRepository.delete(sql.id);
-  //   } else {
-  //     const sql: Poll = payload;
-  //     return await this.pollsRepository.softDelete(sql.id);
-  //   }
-  // }
+  public async ClosePoll(source: any, pollId: number): Promise<any> {
+    let message = 'เกิดข้อผิดพลาดบางอย่าง หรือคุณไม่มีสิทธิ์การจัดการโพลนี้ กรุณาลองใหม่อีกครั้งค่ะ'
+
+    this.validationService.NullValidator({
+      oaUid: source.oaUid,
+      oaGid: source.oaGid,
+      pollId: pollId,
+    })
+
+    // validate already poll
+    const poll = await this.GetOne(
+      {
+        select: {
+          id: true,
+          question: true,
+          status: true
+        },
+        id: pollId,
+        oaUid: source.oaUid
+      }
+    )
+    
+    //ไม่มีสิทธิ์เข้าถึงโพล
+    if (!poll) {      
+      return {
+        message: {
+          type: 'text',
+          text: message
+        },
+        isClosed: true
+      }
+    }
+
+    if (poll.status != 1) {
+      message = `โพล ${poll.question} ปิดโหวตแล้วค่ะ`
+      return {
+        message: {
+          type: 'text',
+          text: message
+        },
+        question: poll.question,
+        isClosed: true
+      }
+    }
+
+    //////////
+
+
+
+    //////////
+
+    const pollUpdate = await this.Update(
+      {
+        id: pollId,
+        status: 2
+      }
+    )
+    if (!pollUpdate) {
+      throw 'close poll failed'
+    }
+
+    await this.sendPollService.SendClosedPoll(
+      {
+        to: source.oaGid,
+        lineMessageToken: this.configService.get('Line').Message.Token,
+        lineMessageSecret: this.configService.get('Line').Message.Secret
+      },
+      pollUpdate.id,
+      pollUpdate.question
+    )
+
+    return true
+
+  }
   
 }

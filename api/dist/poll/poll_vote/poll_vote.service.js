@@ -24,6 +24,7 @@ const config_1 = require("@nestjs/config");
 const member_service_1 = require("../../member/member.service");
 const send_poll_service_1 = require("../../push/send_poll/send_poll.service");
 const poll_1 = require("../../utils/define/poll");
+const flex_template_1 = require("../../template/flex.template");
 let PollVoteService = class PollVoteService {
     constructor(pollVoteRepository, memberRepository, connection, validationService, pollService, pollListService, memberService, sendPollService, configService) {
         this.pollVoteRepository = pollVoteRepository;
@@ -63,7 +64,8 @@ let PollVoteService = class PollVoteService {
                 id: payload.id,
                 pollId: payload.pollId,
                 pollListId: payload.pollListId,
-                oa_uid: payload.oa_uid,
+                oaUid: payload.oaUid,
+                oaGid: payload.oaGid,
             },
         };
         return await this.pollVoteRepository.findOne(sql);
@@ -84,13 +86,12 @@ let PollVoteService = class PollVoteService {
     }
     async VerifyVoted(source, pollId, pollListId) {
         try {
-            let message = 'เกิดข้อผิดพลาดบางอย่าง กรุณาลองใหม่อีกครั้งค่ะ';
+            let message = 'เกิดข้อผิดพลาดบางอย่าง หรือคุณไม่มีสิทธิ์การจัดการโพลนี้ กรุณาลองใหม่อีกครั้งค่ะ';
             this.validationService.NullValidator({
                 oaUid: source.oaUid,
                 pollId: pollId,
                 pollListId: pollListId,
             });
-            console.log(1);
             const poll = await this.pollService.GetOne({
                 select: {
                     id: true,
@@ -98,11 +99,11 @@ let PollVoteService = class PollVoteService {
                     status: true
                 },
                 id: pollId,
+                oaUid: source.oaUid
             });
             if (!poll) {
                 throw 'get polls not found';
             }
-            console.log(2);
             if (poll.status != 1) {
                 message = `โพล ${poll.question} ปิดโหวตแล้วค่ะ`;
                 return {
@@ -114,7 +115,6 @@ let PollVoteService = class PollVoteService {
                     isClosed: true
                 };
             }
-            console.log(3);
             const pollList = await this.pollListService.GetOne({
                 select: {
                     id: true,
@@ -126,15 +126,16 @@ let PollVoteService = class PollVoteService {
             if (!pollList) {
                 throw 'get poll_lists not found';
             }
-            console.log(4);
             const pollVote = await this.GetOne({
                 select: {
                     id: true,
                 },
                 pollId: poll.id,
-                oaUid: source.oaUid
+                oaUid: source.oaUid,
+                oaGid: source.oaGid
             });
-            console.log(5);
+            console.log('source', source);
+            console.log('pollVote', pollVote);
             const payload = {
                 pollId: poll.id,
                 pollListId: pollList.id,
@@ -211,16 +212,41 @@ let PollVoteService = class PollVoteService {
         COUNT(poll_votes.id) DESC,
         poll_lists.id ASC
     `);
-        if (rawPollSummary) {
-            if (rawPollSummary.length > 0) {
-                let message = '';
-                rawPollSummary.map((e) => {
-                    message += `${e.answer}(${e.count}) / `;
-                });
-                return message.slice(0, -3);
+        let bodyContents = [];
+        rawPollSummary.forEach((e, k) => {
+            if (k >= 3) {
+                return;
             }
-        }
-        return null;
+            bodyContents.push({
+                'type': 'box',
+                'layout': 'baseline',
+                'spacing': 'sm',
+                'contents': [
+                    {
+                        'type': 'text',
+                        'text': `อันดับ ${k + 1}`,
+                        'color': '#aaaaaa',
+                        'size': 'sm',
+                        'flex': 2
+                    },
+                    {
+                        'type': 'text',
+                        'text': `${e.answer} (${e.count} คะแนน)`,
+                        'wrap': true,
+                        'color': '#666666',
+                        'size': 'sm',
+                        'flex': 5
+                    }
+                ]
+            });
+        });
+        let body = {
+            type: 'box',
+            layout: 'vertical',
+            contents: bodyContents
+        };
+        const pushMsg = [(0, flex_template_1.TemplateContent)('ประกาศผลโหวต', 'bubble', body, null)];
+        return pushMsg;
     }
     async VerifyMemberNotVote() {
         try {

@@ -17,13 +17,13 @@ const common_1 = require("@nestjs/common");
 const validation_service_1 = require("../../utils/validation/validation.service");
 const poll_vote_service_1 = require("./poll_vote.service");
 let PollVoteController = class PollVoteController {
-    constructor(pollAnswerService, validationService) {
-        this.pollAnswerService = pollAnswerService;
+    constructor(pollVoteService, validationService) {
+        this.pollVoteService = pollVoteService;
         this.validationService = validationService;
     }
     async Create(body) {
         try {
-            const pollAnswerCreate = await this.pollAnswerService.
+            const pollAnswerCreate = await this.pollVoteService.
                 Create(body.poll_votes);
             if (!pollAnswerCreate) {
                 throw 'Create failed';

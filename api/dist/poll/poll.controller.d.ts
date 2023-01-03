@@ -21,9 +21,11 @@ export declare class PollController {
     }, req: Request): Promise<any>;
     update(params: any, body: {
         status: number;
+        oaGid: string;
     }): Promise<any>;
     list(query: {
         isClosed: string;
+        groupId: string;
     }, req: Request): Promise<any>;
     notVote(): Promise<any>;
 }

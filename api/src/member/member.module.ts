@@ -1,3 +1,4 @@
+import { HttpModule } from '@nestjs/axios';
 import {
   Global,
   MiddlewareConsumer,
@@ -7,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MiddlewareBasic } from 'src/commons/middleware/basic.middleware';
+import { LineMiddleware } from 'src/commons/middleware/line.middleware';
 import { MemberController } from './member.controller';
 import { Member } from './member.entity';
 import { MemberService } from './member.service';
@@ -14,7 +16,7 @@ import { MemberService } from './member.service';
 
 @Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([Member])],
+  imports: [TypeOrmModule.forFeature([Member]), HttpModule],
   controllers: [MemberController],
   providers: [MemberService],
   exports: [MemberService]
@@ -22,7 +24,7 @@ import { MemberService } from './member.service';
 export class MemberModule implements NestModule {
   configure(consumer: MiddlewareConsumer): any {
     consumer
-      .apply(MiddlewareBasic)
+      .apply(MiddlewareBasic, LineMiddleware)
       // .exclude({ path: 'member/login', method: RequestMethod.POST })
       .forRoutes(MemberController);
   }

@@ -1,11 +1,15 @@
 import { Client, Message } from '@line/bot-sdk';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ContentBody, ContentFooter, TemplateContent } from '../../template/flex.template';
 
 @Injectable()
 export class SendPollService {
+  constructor(
+    private readonly configService: ConfigService,
+  ) {}
 
-  public async SendCreatePoll(oa: any, question: string, answer: any[], expired: string): Promise<any> {
+  public async SendCreatePoll(oa: any, question: string, answer: any[], pollId: string): Promise<any> {
     const client = new Client(
       {
         'channelAccessToken': oa.lineMessageToken,
@@ -27,61 +31,43 @@ export class SendPollService {
           'size': 'lg',
           'wrap': true,
         },
-        {
-          'type': 'box',
-          'layout': 'vertical',
-          'margin': 'lg',
-          'spacing': 'sm',
-          'contents': [
-            {
-              'type': 'box',
-              'layout': 'baseline',
-              'spacing': 'sm',
-              'contents': [
-                {
-                  'type': 'text',
-                  'text': 'Expire:',
-                  'color': '#aaaaaa',
-                  'size': 'sm',
-                  'flex': 2
-                },
-                // {
-                //   'type': 'text',
-                //   'text': `${expired}`,
-                //   'wrap': true,
-                //   'color': '#666666',
-                //   'size': 'sm',
-                //   'flex': 4
-                // }
-              ]
-            }
-          ]
-        }
       ]
     }
     
     let footer: ContentFooter = {
       type: 'box',
       layout: 'vertical',
-      contents: answer.map((e: any) => {
-        return {
-          'type': 'button',
-          'style': 'secondary',
-          'height': 'sm',
-          // 'action': {
-          //   'type': 'message',
-          //   'label': e.label,
-          //   'text': e.text
-          // },
-          'action': {
-            'type': 'postback',
-            'label': e.label,
-            'data': e.data,
-            'displayText': e.text
+      contents: answer.map((e: any) =>
+        {
+          return {
+            'type': 'button',
+            'style': 'secondary',
+            'height': 'sm',
+            'action': {
+              'type': 'postback',
+              'label': e.label,
+              'data': e.data,
+              'displayText': e.text
+            }
           }
         }
-      })
+      )
     }
+
+    footer.contents.push(
+      {
+        'type': 'button',
+        'style': 'primary',
+        'height': 'md',
+        'action': {
+          'type': 'postback',
+          'label': `ปิดโหวต`,
+          'data': pollId,
+          'displayText': `ปิดโหวตโพล ${question}`
+        },
+        'color': '#CC0033'
+     }
+    )
 
     const pushMsg: Message[] = [TemplateContent(question, 'bubble', body, footer)]
     await client.pushMessage(oa.to, pushMsg).catch((e: any) => { console.log(e) })
@@ -99,11 +85,10 @@ export class SendPollService {
       throw 'verify line token failed'
     }
 
-    const qCode = id.toString().padStart(5, "0")
     const pushMsg: Message[] = [
       {
         type: 'text',
-        text: `(${qCode}: ${question}) ปิดโหวตแล้วค่ะ`
+        text: `โพล ${question} ปิดโหวตแล้วค่ะ`
       }
     ]
 
@@ -111,7 +96,7 @@ export class SendPollService {
 
   }
 
-  public async SendSummaryPoll(oa: any, message: string): Promise<any> {
+  public async SendSummaryPoll(oa: any, pushMsg: Message[]): Promise<any> {
     const client = new Client(
       {
         'channelAccessToken': oa.lineMessageToken,
@@ -122,14 +107,7 @@ export class SendPollService {
       throw 'verify line token failed'
     }
 
-    const pushMsg: Message[] = [
-      {
-        type: 'text',
-        text: message
-      }
-    ]
-
-    await client.pushMessage(oa.to, pushMsg).catch((e: any) => { console.log(e) });
+    await client.pushMessage(oa.to, pushMsg).catch((e: any) => { console.log(e) })
 
   }
 

@@ -1,7 +1,6 @@
 import { Injectable, NestMiddleware } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Request, Response, NextFunction } from "express";
-import * as fs from "fs";
 import { ValidationService } from "src/utils/validation/validation.service";
 import { createHmac } from "crypto";
 import { Client } from "@line/bot-sdk";

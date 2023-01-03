@@ -14,7 +14,7 @@ import { PollVoteService } from './poll_vote.service';
 @Controller('poll/poll_vote')
 export class PollVoteController {
   constructor(
-    private readonly pollAnswerService: PollVoteService,
+    private readonly pollVoteService: PollVoteService,
     private readonly validationService: ValidationService,
   ) {}
 
@@ -27,7 +27,7 @@ export class PollVoteController {
   ): Promise<any> {
     try {
       const pollAnswerCreate = 
-        await this.pollAnswerService.
+        await this.pollVoteService.
           Create(body.poll_votes);
       if (!pollAnswerCreate) {
         throw 'Create failed';

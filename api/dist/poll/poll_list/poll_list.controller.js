@@ -17,26 +17,11 @@ const common_1 = require("@nestjs/common");
 const validation_service_1 = require("../../utils/validation/validation.service");
 const poll_list_service_1 = require("./poll_list.service");
 let PollListController = class PollListController {
-    constructor(pollAnswerService, validationService) {
-        this.pollAnswerService = pollAnswerService;
+    constructor(pollVoteService, validationService) {
+        this.pollVoteService = pollVoteService;
         this.validationService = validationService;
     }
     async Create(body) {
-        try {
-            const pollAnswerCreate = await this.pollAnswerService.
-                Create(body.poll_lists);
-            if (!pollAnswerCreate) {
-                throw 'create failed';
-            }
-            return pollAnswerCreate;
-        }
-        catch (error) {
-            console.log(error);
-            return {
-                status: this.validationService.StatusWithCode(400),
-                error: error,
-            };
-        }
     }
 };
 __decorate([

@@ -11,6 +11,8 @@ import { MemberService } from 'src/member/member.service';
 import { Member } from 'src/member/member.entity';
 import { SendPollService } from 'src/push/send_poll/send_poll.service';
 import { POLL_STATUS } from 'src/utils/define/poll';
+import { ContentBody, TemplateContent } from 'src/template/flex.template';
+import { Message } from '@line/bot-sdk';
 
 @Injectable()
 export class PollVoteService {
@@ -55,7 +57,8 @@ export class PollVoteService {
         id: payload.id,
         pollId: payload.pollId,
         pollListId: payload.pollListId,
-        oa_uid: payload.oa_uid,
+        oaUid: payload.oaUid,
+        oaGid: payload.oaGid,
       },
     };
     return await this.pollVoteRepository.findOne(sql);
@@ -78,15 +81,13 @@ export class PollVoteService {
 
   public async VerifyVoted(source: any, pollId: number, pollListId: number): Promise<any> {
     try {
-      let message = 'เกิดข้อผิดพลาดบางอย่าง กรุณาลองใหม่อีกครั้งค่ะ'
+      let message = 'เกิดข้อผิดพลาดบางอย่าง หรือคุณไม่มีสิทธิ์การจัดการโพลนี้ กรุณาลองใหม่อีกครั้งค่ะ'
 
       this.validationService.NullValidator({
         oaUid: source.oaUid,
         pollId: pollId,
         pollListId: pollListId,
       })
-
-      console.log(1);
       
       // validate already poll
       const poll = await this.pollService.GetOne(
@@ -98,13 +99,12 @@ export class PollVoteService {
             status: true
           },
           id: pollId,
+          oaUid: source.oaUid
         }
       )
       if (!poll) {
         throw 'get polls not found'
       }
-      console.log(2);
-
       // validate poll expired time
       // const now = new Date()
       // let unix = DatetimeToUnix(now, 0)
@@ -120,8 +120,6 @@ export class PollVoteService {
         }
       }
   
-      console.log(3);
-
       // validate already poll_lists
       const pollList = await this.pollListService.GetOne(
         {
@@ -137,8 +135,6 @@ export class PollVoteService {
         throw 'get poll_lists not found'
       }
 
-      console.log(4);
-
       // validate poll anwser already vote
       const pollVote = await this.GetOne(
         {
@@ -146,11 +142,14 @@ export class PollVoteService {
             id: true,
           },
           pollId: poll.id,
-          oaUid: source.oaUid
+          oaUid: source.oaUid,
+          oaGid: source.oaGid
         }
       )
 
-      console.log(5);
+      console.log('source', source);
+      console.log('pollVote', pollVote);
+      
 
       const payload: PollVote = {
         pollId: poll.id,
@@ -158,7 +157,7 @@ export class PollVoteService {
         oaUid: source.oaUid,
         oaGid: source.oaGid
       }      
-      if (!pollVote) { // case not vote     
+      if (!pollVote) { // case not vote
         const pollVoteCreate = await this.Create([payload])
         if (pollVoteCreate) { message = 'ได้รับคำตอบแล้ว ขอบคุณค่ะ' }
       } else { // case already vote
@@ -214,7 +213,7 @@ export class PollVoteService {
     
   }
 
-  public async SummaryPoll(pollId: number): Promise<string> {
+  public async SummaryPoll(pollId: number): Promise<Message[]> {
     const rawPollSummary = await this.connection.query(`
       SELECT
         poll_lists.answer,
@@ -232,18 +231,46 @@ export class PollVoteService {
         COUNT(poll_votes.id) DESC,
         poll_lists.id ASC
     `)
-    
-    if (rawPollSummary) {
-      if (rawPollSummary.length > 0) {
-        let message = ''
-        rawPollSummary.map((e: any) => {
-          message += `${e.answer}(${e.count}) / `
-        })
-        return message.slice(0, -3)
-      }
-    }
 
-    return null
+    let bodyContents: any = []
+    rawPollSummary.forEach((e: any, k: number) => {
+      if (k >= 3) {
+        return
+      }
+      bodyContents.push({
+        'type': 'box',
+        'layout': 'baseline',
+        'spacing': 'sm',
+        'contents': [
+          {
+            'type': 'text',
+            'text': `อันดับ ${k+1}`,
+            'color': '#aaaaaa',
+            'size': 'sm',
+            'flex': 2
+          },
+          {
+            'type': 'text',
+            'text': `${e.answer} (${e.count} คะแนน)`,
+            'wrap': true,
+            'color': '#666666',
+            'size': 'sm',
+            'flex': 5
+          }
+        ] 
+      })
+      
+    })
+
+    let body: ContentBody = {
+      type: 'box',
+      layout: 'vertical',
+      contents: bodyContents
+    }
+    
+    const pushMsg: Message[] = [TemplateContent('ประกาศผลโหวต', 'bubble', body, null)]
+
+    return pushMsg
     
   }
 

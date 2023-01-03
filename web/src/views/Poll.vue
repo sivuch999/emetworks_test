@@ -1,80 +1,77 @@
 <template>
   <div id="app" class="container">
 
-    <v-label>โปรดระบุรายละเอียด Poll</v-label>
+    <v-card v-if="!groupId" class="w-full mt-5 mx-2" v-for="item in members" :key="item.groupId">
+      <v-card-text class="text-center">
+        <v-btn text color="info accent-4" @click="$router.push(`/poll?groupId=${item.groupId}`)">
+          กลุ่ม {{ item.groupName }}
+        </v-btn>
+      </v-card-text>
+    </v-card>
 
+    <div v-if="groupId">
+      <v-label>โปรดระบุรายละเอียด Poll</v-label>
+      {{ groupId }}
+      <v-form class="form-poll-component" ref="form" v-model="valid" lazy-validation>
+        <v-container class="mb-6">
+          <v-row>
+            <v-col cols="12">
+              <v-text-field
+                variant="outlined"
+                v-model="question"
+                :rules="questionRules"
+                label="คำถาม"
+                required
+              ></v-text-field>
+            </v-col>
+          </v-row>
 
-    <v-form class="form-poll-component" ref="form" v-model="valid" lazy-validation>
-      <v-container class="mb-6">
-        <v-row>
-          <v-col cols="12">
-            <v-text-field
-              variant="outlined"
-              v-model="question"
-              :rules="questionRules"
-              label="คำถาม"
-              required
-            ></v-text-field>
-          </v-col>
-        </v-row>
+          <v-row class="anwser-wrapper" v-for="(value, index) in pollList" :key="index" no-gutters>
+            <v-col cols="10">
+              <v-text-field
+                variant="outlined"
+                v-model="value.answer"
+                :counter="30"
+                :rules="[...answerRules, formDuplicateValidation]"
+                label="ตัวเลือก"
+                required
+              ></v-text-field>
+            </v-col>
+            <v-col cols="2">
+              <v-btn @click="removeAnswer(index)">
+                <v-icon
+                  dark
+                  right
+                >
+                  mdi-close-circle
+                </v-icon>
+              </v-btn>
+            </v-col>
+          </v-row>
 
-        <v-row class="anwser-wrapper" v-for="(value, index) in pollList" :key="index" no-gutters>
-          <v-col cols="10">
-            <v-text-field
-              variant="outlined"
-              v-model="value.answer"
-              :counter="30"
-              :rules="answerRules"
-              label="ตัวเลือก"
-              required
-            ></v-text-field>
-          </v-col>
-          <v-col cols="2">
-            <v-btn @click="removeAnswer(index)">
-              <v-icon
-                dark
-                right
-              >
-                mdi-close-circle
-              </v-icon>
-            </v-btn>
-          </v-col>
-        </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-btn @click="addAnswer">เพิ่มตัวเลือก</v-btn>
+            </v-col>
+          </v-row>
 
-        <!-- <v-row>
-          <v-col cols="4">
-            <v-text-field
-              type="number"
-              variant="outlined"
-              v-model="dayExpire"
-              :rules="dayExpireRules"
-              label="จำนวนวันหมดอายุ"
-              required
-            ></v-text-field>
-          </v-col>
-        </v-row> -->
+          <v-row>
+            <v-col cols="12">
+              <v-btn @click="submit" color="success">
+                <v-progress-circular
+                  v-if="progressBtnSubmit"
+                  indeterminate
+                  color="green"
+                ></v-progress-circular>
+                <div v-if="!progressBtnSubmit">ยืนยัน</div>
+              </v-btn>
+            </v-col>
+          </v-row>
 
-        <v-row>
-          <v-col cols="12">
-            <v-btn @click="addAnswer">เพิ่มตัวเลือก</v-btn>
-          </v-col>
-        </v-row>
-
-        <v-row>
-          <v-col cols="12">
-            <v-btn @click="submit" color="success">
-              <v-progress-circular
-                v-if="progressBtnSubmit"
-                indeterminate
-                color="green"
-              ></v-progress-circular>
-              <div v-if="!progressBtnSubmit">ยืนยัน</div>
-            </v-btn>
-          </v-col>
-        </v-row>
-
-      </v-container>
-    </v-form>
+        </v-container>
+      </v-form>
+    </div>
+   
 
   <SuccessBar ref="Success"/>
   <WarningBar ref="Warning"/>
@@ -88,36 +85,72 @@
   import WarningBar from "../components/WarningBar.vue";
   import { $axios } from "../services/api";
 
+  type Member = {
+    groupId: number,
+    groupName: string,
+  }
+
   export default defineComponent({
     components: { SuccessBar, WarningBar },
     data() {
       return {
+        groupId: '',
         progressBtnSubmit: false,
         alertRef: this.$refs,
         valid: true,
         answerRules: [
           (v: any) => !!v || 'กรุณาระบุตัวเลือกคำตอบ',
-          (v: string | any[]) => (v && v.length <= 30) || 'คำตอบสูงสุด 30 ตัวอักษี',
+          (v: string | any[]) => (v && v.length <= 30) || 'คำตอบสูงสุด 30 ตัวอักษร',
         ],
         questionRules: [
-          (v: any) => !!v || 'กรุณาระบุตัวคำถาม',
+          (v: any) => !!v || 'กรุณาระบุคำถาม',
         ],
-        // dayExpireRules: [
-        //   (v: any) => !!v || 'Day Expire is required',
-        //   (v: number) => (v && v >= 0) || 'Day Expire  must be minimum 0' 
-        // ],
+        members: [],
         question: '',
-        // dayExpire: 0,
         pollList: [
           {
             answer: ''
           }
         ],
         submitData: {}
-      };
+      } as {
+        groupId: string,
+        progressBtnSubmit: boolean,
+        alertRef: any,
+        valid: boolean,
+        answerRules: any[],
+        questionRules: any[],
+        members: Member[],
+        question: string,
+        pollList: any[],
+        submitData: any
+      }
     },
     methods : {
-      addAnswer () {
+      formDuplicateValidation(value: any) {
+        let counter = 0
+        this.pollList.forEach((e: any) => {
+          counter += (e.answer.trim() == value.trim()) ? 1 : 0
+        })
+        return counter >= 2 ? 'มีคำตอบที่ซ้ำกันกรุณาตรวจสอบ' : true
+      },
+      watchQueryString(query: any) {
+        this.groupId = query.groupId
+      },
+      async getMemberList() {
+        const response = await $axios.get(`/member/group`)
+        if (response.data && response.data.length > 0) {
+          this.members = response.data.map((e: any) => {
+            return {
+              groupId: e.groupId,
+              groupName: e.groupName,
+            }
+          })
+        } else {
+          this.members = []
+        }
+      },
+      addAnswer() {
         const refs: any = this.$refs
         if (this.pollList.length <= 10) {
           this.pollList.push({
@@ -127,35 +160,53 @@
           refs.Warning.show('จำนวนตัวเลือกสูงสุด 10')
         }
       },
-      removeAnswer (index: number) {
+      removeAnswer(index: number) {
         if (this.pollList.length > 1) {
           this.pollList.splice(index, 1)
         }
       },
-      async submit () {
+      async submit() {
         const refs: any = this.$refs
         const { valid } = await refs.form.validate()
           if (valid) {
             this.progressBtnSubmit = true
-          const filterEmptyPollList = this.pollList.filter((e: any) => e.answer != '').map((e: any) => e)
-          if (filterEmptyPollList.length > 0) {
-            const response = await $axios.post('/api/poll', {
-              question: this.question,
-              pollLists: filterEmptyPollList,
-            })
-            if (response.data) {
-              this.progressBtnSubmit = false
-              refs.Success.show()
-              refs.form.reset()
+            const filterEmptyPollList = this.pollList.filter((e: any) => e.answer != '').map((e: any) => e)
+            if (filterEmptyPollList.length > 0) {
+              const response = await $axios.post('/poll', {
+                question: this.question,
+                pollLists: filterEmptyPollList,
+                oaGid: this.groupId
+              })
+              if (response.data) {
+                this.progressBtnSubmit = false
+                refs.Success.show()
+                refs.form.reset()
+                this.pollList = [{ answer: '' }]
+              }
             }
           }
-        }
         
        
       }
     },
-    mounted() {
-    
+    watch: {
+      "$route.query": function (value) {
+        this.watchQueryString(value)
+      }
+    },
+    computed: {
+      page () {
+        return this.$route.query.groupId
+      }
+    },
+
+    async mounted() {
+      if (this.$route.query.groupId) {
+        let groupId: any = this.$route.query.groupId
+        this.groupId = groupId ?? ''
+      } else {
+        await this.getMemberList()
+      }
     }
   });
 </script>
@@ -179,5 +230,5 @@
           box-shadow: unset;
         }
      }
-   }
+  }
 </style>

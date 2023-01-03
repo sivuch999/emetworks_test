@@ -16,7 +16,8 @@ import { SendPollService } from 'src/push/send_poll/send_poll.service';
 import { PollVoteService } from 'src/poll/poll_vote/poll_vote.service';
 import { ConfigService } from '@nestjs/config';
 import { Poll } from './poll.entity';
-import { query, Request } from 'express';
+import { Request } from 'express';
+import { Client } from '@line/bot-sdk';
 
 @Controller('poll')
 export class PollController {
@@ -49,18 +50,14 @@ export class PollController {
       });
 
       if (body.pollLists.length > POLL_LIST_MAX) {
-        throw `The number of polls is greater than ${POLL_LIST_MAX}`;
+        throw `The number of polls isz greater than ${POLL_LIST_MAX}`;
       }
+    
+      var pollListValue = body.pollLists.map((v) => v.answer )
+      var pollListFilterDup = pollListValue.filter((v, k) => { 
+          return pollListValue.indexOf(v) == k 
+      }).map((v: string) => { return { answer: v } })
 
-      // const milliseconds = 1575909015 * 1000 // 1575909015000
-      // const dateObject = new Date(milliseconds)
-          
-      // const now = new Date()
-      // let expired = null
-      // if (body.day != null && body.day != undefined) {
-      //   expired = DatetimeToUnix(now, body.day)
-      // }
-      
       const pollCreate = 
         await this.pollService.
           Create(
@@ -68,37 +65,24 @@ export class PollController {
               question: body.question,
               oaUid: req['oa']['sub'],
               oaGid: body.oaGid,
-              // expired: expired ? expired.toString() : null,
-              pollLists: body.pollLists,
+              pollLists: pollListFilterDup,
             }
           );
       if (!pollCreate) {
         throw 'create polls failed';
       }
 
-      const data = pollCreate.pollLists.map((e: any) => {
-        console.log(e);
-        
-        const obj: any = { pollId: pollCreate.id, pollListId: e.id }
-        return { 
-          data: new URLSearchParams(obj).toString()
-          }
-        })
-
-        console.log(data);
-        
-      // return
-
       const question = `${pollCreate.question}`
       const answer = pollCreate.pollLists.map((e: any) => {
-        const dataObj: any = { pollId: pollCreate.id, pollListId: e.id }
+        const queryParamsAnswer: any = { type: 'vote', pollId: pollCreate.id, pollListId: e.id }
         return {
           label: e.answer,
-          data: new URLSearchParams(dataObj).toString(),
+          data: new URLSearchParams(queryParamsAnswer).toString(),
           text: `โพล ${pollCreate.question} ตอบ ${e.answer}`
         }
       })
       
+      const queryParamsPollId: any = { type: 'close', pollId: pollCreate.id }
       await this.sendPollService.SendCreatePoll(
         {
           to: body.oaGid,
@@ -107,7 +91,7 @@ export class PollController {
         },
         question,
         answer,
-        null
+        new URLSearchParams(queryParamsPollId).toString()
       )
 
       return pollCreate;
@@ -124,7 +108,7 @@ export class PollController {
   @Patch('close/:id')
   async update(
     @Param() params,
-    @Body() body: { status: number },
+    @Body() body: { status: number, oaGid: string; },
   ): Promise<any> {
     try {
       this.validationService.NullValidator({
@@ -162,15 +146,15 @@ export class PollController {
       )
 
       if (body.status == POLL_STATUS.Closed) {
-        const summary = await this.pollVoteService.SummaryPoll(pollUpdate.id)
-        if (summary) {
+        const messages = await this.pollVoteService.SummaryPoll(pollUpdate.id)
+        if (messages) {
           await this.sendPollService.SendSummaryPoll(
             {
-              to: this.configService.get('Line').GroupId,
+              to: body.oaGid,
               lineMessageToken: this.configService.get('Line').Message.Token,
               lineMessageSecret: this.configService.get('Line').Message.Secret
             },
-            `สรุปผลโหวต: ${summary}`,
+            messages
           )
         }
       }
@@ -191,6 +175,7 @@ export class PollController {
     @Query()
     query: {
       isClosed: string;
+      groupId: string;
     },
     @Req() req: Request,
   ): Promise<any> {
@@ -198,6 +183,16 @@ export class PollController {
       this.validationService.NullValidator({
         oaUid: req['oa']['sub'],
       });
+
+      const client = new Client(
+        {
+          'channelAccessToken': this.configService.get('Line').Message.Token,
+          'channelSecret': this.configService.get('Line').Message.Secret
+        },
+      )
+      if (!client) {
+        throw 'verify line token failed'
+      }
 
       let isClosedToBool: boolean
       if (query.isClosed) {
@@ -209,19 +204,24 @@ export class PollController {
           select: {
             id: true,
             // oaUid: true,
-            question: true
+            question: true,
+            oaGid: true
           },
           isClosed: isClosedToBool ?? undefined,
-          oaUid: req['oa']['sub']
+          oaUid: req['oa']['sub'],
+          oaGid: query.groupId ?? undefined,
         }
-      )
+      )      
 
-      const pollList = pollGetList.map((e: Poll) => {
+      const pollList = Promise.all(pollGetList.map(async (e: Poll): Promise<any>  => {
+        const oaGroup = await client.getGroupSummary(e.oaGid)
         return {
-          ...e,
-          code: e.id.toString().padStart(5, "0")
+          id: e.id,
+          question: e.question,
+          groupId: oaGroup.groupId,
+          groupName: oaGroup.groupName
         }
-      })
+      }))
   
       return pollList
 

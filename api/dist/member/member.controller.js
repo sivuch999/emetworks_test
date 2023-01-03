@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const validation_service_1 = require("../utils/validation/validation.service");
 const member_service_1 = require("./member.service");
 const config_1 = require("@nestjs/config");
+const bot_sdk_1 = require("@line/bot-sdk");
 let MemberController = class MemberController {
     constructor(configService, memberService, validationService) {
         this.configService = configService;
@@ -58,6 +59,44 @@ let MemberController = class MemberController {
         }
         return memberUpdate;
     }
+    async listGroupByUid(req) {
+        try {
+            this.validationService.NullValidator({
+                oaUid: req['oa']['sub'],
+            });
+            const client = new bot_sdk_1.Client({
+                'channelAccessToken': this.configService.get('Line').Message.Token,
+                'channelSecret': this.configService.get('Line').Message.Secret
+            });
+            if (!client) {
+                throw 'verify line token failed';
+            }
+            const memberGetList = await this.memberService.GetList({
+                select: {
+                    id: true,
+                    oaUid: true,
+                    oaGid: true
+                },
+                oaUid: req['oa']['sub'],
+                isActive: true
+            });
+            const pollList = Promise.all(memberGetList.map(async (e) => {
+                const oaGroup = await client.getGroupSummary(e.oaGid);
+                return {
+                    groupId: oaGroup.groupId,
+                    groupName: oaGroup.groupName
+                };
+            }));
+            return pollList;
+        }
+        catch (error) {
+            console.log(error);
+            return {
+                status: this.validationService.StatusWithCode(400),
+                error: error,
+            };
+        }
+    }
 };
 __decorate([
     (0, common_1.Post)('/'),
@@ -74,6 +113,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], MemberController.prototype, "update", null);
+__decorate([
+    (0, common_1.Get)('group'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], MemberController.prototype, "listGroupByUid", null);
 MemberController = __decorate([
     (0, common_1.Controller)('member'),
     __metadata("design:paramtypes", [config_1.ConfigService,

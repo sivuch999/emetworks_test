@@ -5,13 +5,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SendPollService = void 0;
 const bot_sdk_1 = require("@line/bot-sdk");
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const flex_template_1 = require("../../template/flex.template");
 let SendPollService = class SendPollService {
-    async SendCreatePoll(oa, question, answer, expired) {
+    constructor(configService) {
+        this.configService = configService;
+    }
+    async SendCreatePoll(oa, question, answer, pollId) {
         const client = new bot_sdk_1.Client({
             'channelAccessToken': oa.lineMessageToken,
             'channelSecret': oa.lineMessageSecret
@@ -30,28 +37,6 @@ let SendPollService = class SendPollService {
                     'size': 'lg',
                     'wrap': true,
                 },
-                {
-                    'type': 'box',
-                    'layout': 'vertical',
-                    'margin': 'lg',
-                    'spacing': 'sm',
-                    'contents': [
-                        {
-                            'type': 'box',
-                            'layout': 'baseline',
-                            'spacing': 'sm',
-                            'contents': [
-                                {
-                                    'type': 'text',
-                                    'text': 'Expire:',
-                                    'color': '#aaaaaa',
-                                    'size': 'sm',
-                                    'flex': 2
-                                },
-                            ]
-                        }
-                    ]
-                }
             ]
         };
         let footer = {
@@ -71,6 +56,18 @@ let SendPollService = class SendPollService {
                 };
             })
         };
+        footer.contents.push({
+            'type': 'button',
+            'style': 'primary',
+            'height': 'md',
+            'action': {
+                'type': 'postback',
+                'label': `ปิดโหวต`,
+                'data': pollId,
+                'displayText': `ปิดโหวตโพล ${question}`
+            },
+            'color': '#CC0033'
+        });
         const pushMsg = [(0, flex_template_1.TemplateContent)(question, 'bubble', body, footer)];
         await client.pushMessage(oa.to, pushMsg).catch((e) => { console.log(e); });
     }
@@ -82,16 +79,15 @@ let SendPollService = class SendPollService {
         if (!client) {
             throw 'verify line token failed';
         }
-        const qCode = id.toString().padStart(5, "0");
         const pushMsg = [
             {
                 type: 'text',
-                text: `(${qCode}: ${question}) ปิดโหวตแล้วค่ะ`
+                text: `โพล ${question} ปิดโหวตแล้วค่ะ`
             }
         ];
         await client.pushMessage(oa.to, pushMsg).catch((e) => { console.log(e); });
     }
-    async SendSummaryPoll(oa, message) {
+    async SendSummaryPoll(oa, pushMsg) {
         const client = new bot_sdk_1.Client({
             'channelAccessToken': oa.lineMessageToken,
             'channelSecret': oa.lineMessageSecret
@@ -99,12 +95,6 @@ let SendPollService = class SendPollService {
         if (!client) {
             throw 'verify line token failed';
         }
-        const pushMsg = [
-            {
-                type: 'text',
-                text: message
-            }
-        ];
         await client.pushMessage(oa.to, pushMsg).catch((e) => { console.log(e); });
     }
     async SendReminderPoll(oa, push) {
@@ -121,7 +111,8 @@ let SendPollService = class SendPollService {
     }
 };
 SendPollService = __decorate([
-    (0, common_1.Injectable)()
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], SendPollService);
 exports.SendPollService = SendPollService;
 //# sourceMappingURL=send_poll.service.js.map

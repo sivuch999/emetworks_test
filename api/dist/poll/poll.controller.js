@@ -20,6 +20,7 @@ const poll_1 = require("../utils/define/poll");
 const send_poll_service_1 = require("../push/send_poll/send_poll.service");
 const poll_vote_service_1 = require("./poll_vote/poll_vote.service");
 const config_1 = require("@nestjs/config");
+const bot_sdk_1 = require("@line/bot-sdk");
 let PollController = class PollController {
     constructor(configService, pollService, validationService, sendPollService, pollVoteService) {
         this.configService = configService;
@@ -36,40 +37,37 @@ let PollController = class PollController {
                 oaGid: body.oaGid,
             });
             if (body.pollLists.length > poll_1.POLL_LIST_MAX) {
-                throw `The number of polls is greater than ${poll_1.POLL_LIST_MAX}`;
+                throw `The number of polls isz greater than ${poll_1.POLL_LIST_MAX}`;
             }
+            var pollListValue = body.pollLists.map((v) => v.answer);
+            var pollListFilterDup = pollListValue.filter((v, k) => {
+                return pollListValue.indexOf(v) == k;
+            }).map((v) => { return { answer: v }; });
             const pollCreate = await this.pollService.
                 Create({
                 question: body.question,
                 oaUid: req['oa']['sub'],
                 oaGid: body.oaGid,
-                pollLists: body.pollLists,
+                pollLists: pollListFilterDup,
             });
             if (!pollCreate) {
                 throw 'create polls failed';
             }
-            const data = pollCreate.pollLists.map((e) => {
-                console.log(e);
-                const obj = { pollId: pollCreate.id, pollListId: e.id };
-                return {
-                    data: new URLSearchParams(obj).toString()
-                };
-            });
-            console.log(data);
             const question = `${pollCreate.question}`;
             const answer = pollCreate.pollLists.map((e) => {
-                const dataObj = { pollId: pollCreate.id, pollListId: e.id };
+                const queryParamsAnswer = { type: 'vote', pollId: pollCreate.id, pollListId: e.id };
                 return {
                     label: e.answer,
-                    data: new URLSearchParams(dataObj).toString(),
+                    data: new URLSearchParams(queryParamsAnswer).toString(),
                     text: `โพล ${pollCreate.question} ตอบ ${e.answer}`
                 };
             });
+            const queryParamsPollId = { type: 'close', pollId: pollCreate.id };
             await this.sendPollService.SendCreatePoll({
                 to: body.oaGid,
                 lineMessageToken: this.configService.get('Line').Message.Token,
                 lineMessageSecret: this.configService.get('Line').Message.Secret
-            }, question, answer, null);
+            }, question, answer, new URLSearchParams(queryParamsPollId).toString());
             return pollCreate;
         }
         catch (error) {
@@ -103,13 +101,13 @@ let PollController = class PollController {
                 lineMessageSecret: this.configService.get('Line').Message.Secret
             }, pollUpdate.id, pollUpdate.question);
             if (body.status == poll_1.POLL_STATUS.Closed) {
-                const summary = await this.pollVoteService.SummaryPoll(pollUpdate.id);
-                if (summary) {
+                const messages = await this.pollVoteService.SummaryPoll(pollUpdate.id);
+                if (messages) {
                     await this.sendPollService.SendSummaryPoll({
-                        to: this.configService.get('Line').GroupId,
+                        to: body.oaGid,
                         lineMessageToken: this.configService.get('Line').Message.Token,
                         lineMessageSecret: this.configService.get('Line').Message.Secret
-                    }, `สรุปผลโหวต: ${summary}`);
+                    }, messages);
                 }
             }
             return pollUpdate;
@@ -123,10 +121,18 @@ let PollController = class PollController {
         }
     }
     async list(query, req) {
+        var _a;
         try {
             this.validationService.NullValidator({
                 oaUid: req['oa']['sub'],
             });
+            const client = new bot_sdk_1.Client({
+                'channelAccessToken': this.configService.get('Line').Message.Token,
+                'channelSecret': this.configService.get('Line').Message.Secret
+            });
+            if (!client) {
+                throw 'verify line token failed';
+            }
             let isClosedToBool;
             if (query.isClosed) {
                 isClosedToBool = query.isClosed.toLowerCase() === 'false' ? false : Boolean(query.isClosed);
@@ -134,14 +140,22 @@ let PollController = class PollController {
             const pollGetList = await this.pollService.GetList({
                 select: {
                     id: true,
-                    question: true
+                    question: true,
+                    oaGid: true
                 },
                 isClosed: isClosedToBool !== null && isClosedToBool !== void 0 ? isClosedToBool : undefined,
-                oaUid: req['oa']['sub']
+                oaUid: req['oa']['sub'],
+                oaGid: (_a = query.groupId) !== null && _a !== void 0 ? _a : undefined,
             });
-            const pollList = pollGetList.map((e) => {
-                return Object.assign(Object.assign({}, e), { code: e.id.toString().padStart(5, "0") });
-            });
+            const pollList = Promise.all(pollGetList.map(async (e) => {
+                const oaGroup = await client.getGroupSummary(e.oaGid);
+                return {
+                    id: e.id,
+                    question: e.question,
+                    groupId: oaGroup.groupId,
+                    groupName: oaGroup.groupName
+                };
+            }));
             return pollList;
         }
         catch (error) {

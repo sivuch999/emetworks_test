@@ -19,21 +19,24 @@ export class MemberService {
     const sql = {
       relations: payload.relations,
       select: payload.select,
-      where: {},
+      where: {
+        oaUid: payload.oaUid,
+        isActive: payload.isActive
+      },
       skip: payload.page
         ? Number(payload.limit) * (Number(payload.page) - 1)
         : undefined,
       take: payload.limit ? Number(payload.limit) : undefined,
     };
-    if (payload.keyword) {
-      sql.where = [
-        {
-          display_name: {
-            contains: payload.keyword ? payload.keyword : undefined,
-          },
-        }
-      ];
-    }
+    // if (payload.keyword) {
+    //   sql.where = [
+    //     {
+    //       display_name: {
+    //         contains: payload.keyword ? payload.keyword : undefined,
+    //       },
+    //     }
+    //   ];
+    // }
     return await this.memberRepository.find(sql);
   }
 
@@ -43,20 +46,25 @@ export class MemberService {
       where: {
         id: payload.id,
         oaUid: payload.oaUid,
+        oaGid: payload.oaGid
       },
     }
     return await this.memberRepository.findOne(sql);
   }
 
-  public async Update(payload: Member): Promise<Member> {
-    console.log(payload);
-    
+  public async Update(payload: Member): Promise<Member> {    
     const members = await this.memberRepository.findOneBy({
       id: payload.id,
       oaUid: payload.oaUid,
+      oaGid: payload.oaGid,
     })
-    members.isActive = payload.isActive ?? undefined;
-    return await this.memberRepository.save(members);
+    if (members) {
+      members.isActive = payload.isActive ?? undefined;
+      return await this.memberRepository.save(members);
+    }
+
+    return null
+
   }
 
 }
